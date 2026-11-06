@@ -15,6 +15,10 @@ class ProviderQuotaError(AgenticCragError):
     code = "E02_PROVIDER_QUOTA"
 
 
+class ProviderUnavailableError(AgenticCragError):
+    code = "E02_PROVIDER_UNAVAILABLE"
+
+
 class WebSearchTimeoutError(AgenticCragError):
     code = "E04_WEB_SEARCH_TIMEOUT"
 
