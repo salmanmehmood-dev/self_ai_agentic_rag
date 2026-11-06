@@ -27,6 +27,7 @@ class GraphState(TypedDict, total=False):
     web_fallback_triggered: bool
     degraded_mode: bool
     draft_answer: str
+    synthesis_critique: str
     verification_report: VerificationResult
     citations: list[CitationItem]
     node_trace: Annotated[list[NodeExecutionEvent], operator.add]

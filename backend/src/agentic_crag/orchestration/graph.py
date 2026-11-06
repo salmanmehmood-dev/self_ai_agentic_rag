@@ -1,4 +1,4 @@
-"""Compile CRAG StateGraph for Phase 3 (nodes 1–3 + stubs)."""
+"""Compile CRAG StateGraph (nodes 1–7 with loop ceilings)."""
 
 from __future__ import annotations
 
@@ -6,14 +6,22 @@ from typing import Any, cast
 
 from langgraph.graph import END, START, StateGraph
 
-from agentic_crag.domain.ports import HybridRetrieverPort, LLMClientPort
-from agentic_crag.orchestration.edges import route_after_grade, route_after_sanitize
+from agentic_crag.domain.ports import HybridRetrieverPort, LLMClientPort, WebSearchPort
+from agentic_crag.orchestration.edges import (
+    route_after_grade,
+    route_after_sanitize,
+    route_after_verify,
+)
 from agentic_crag.orchestration.nodes import build_nodes
 from agentic_crag.orchestration.state import GraphState
 
 
-def build_crag_graph(llm: LLMClientPort, retriever: HybridRetrieverPort) -> Any:
-    nodes = build_nodes(llm, retriever)
+def build_crag_graph(
+    llm: LLMClientPort,
+    retriever: HybridRetrieverPort,
+    web_search: WebSearchPort,
+) -> Any:
+    nodes = build_nodes(llm, retriever, web_search)
     # cast: LangGraph stubs reject our NodeFn alias under strict mypy
     graph = cast(Any, StateGraph(GraphState))
 
@@ -23,6 +31,7 @@ def build_crag_graph(llm: LLMClientPort, retriever: HybridRetrieverPort) -> Any:
     graph.add_node("rewrite_query", nodes["rewrite_query"])
     graph.add_node("web_search_fallback", nodes["web_search_fallback"])
     graph.add_node("synthesize_response", nodes["synthesize_response"])
+    graph.add_node("verify_response", nodes["verify_response"])
     graph.add_node("direct_answer", nodes["direct_answer"])
 
     graph.add_edge(START, "sanitize_and_route")
@@ -45,10 +54,17 @@ def build_crag_graph(llm: LLMClientPort, retriever: HybridRetrieverPort) -> Any:
             "web_search_fallback": "web_search_fallback",
         },
     )
-    # Loop ceiling enforced in route_after_grade via rewrite_count
     graph.add_edge("rewrite_query", "hybrid_retrieve")
     graph.add_edge("web_search_fallback", "synthesize_response")
-    graph.add_edge("synthesize_response", END)
+    graph.add_edge("synthesize_response", "verify_response")
+    graph.add_conditional_edges(
+        "verify_response",
+        route_after_verify,
+        {
+            "synthesize_response": "synthesize_response",
+            "__end__": END,
+        },
+    )
     graph.add_edge("direct_answer", END)
 
     return graph.compile()

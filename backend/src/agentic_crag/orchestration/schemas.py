@@ -21,3 +21,19 @@ class ChunkEvaluation(BaseModel):
 
 class BatchGradeResult(BaseModel):
     evaluations: list[ChunkEvaluation]
+
+
+class RewriteResult(BaseModel):
+    new_query: str
+    reason: str = ""
+
+
+class SynthesisResult(BaseModel):
+    answer: str
+
+
+class VerifySchema(BaseModel):
+    is_grounded: bool
+    addresses_query: bool
+    confidence_score: float = Field(ge=0.0, le=1.0)
+    critique: str = ""
