@@ -18,7 +18,8 @@ uv run uvicorn agentic_crag.api.main:app --reload --port 8000
 # GET http://localhost:8000/health
 
 # Frontend
-cd frontend && npm install && npm run dev
+cd frontend && cp .env.local.example .env.local && npm install && npm run dev
+# Workbench → http://localhost:3000 (SSE → backend :8000)
 ```
 
 CI runs on push/PR via `.github/workflows/ci.yml` (ruff, mypy, pytest, Next lint/build).
