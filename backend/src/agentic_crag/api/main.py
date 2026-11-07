@@ -9,7 +9,7 @@ from qdrant_client import AsyncQdrantClient
 from agentic_crag.adapters.llm.gateway import FailoverLLMGateway
 from agentic_crag.adapters.llm.gemini_client import GeminiClient
 from agentic_crag.adapters.llm.groq_client import GroqClient
-from agentic_crag.adapters.retrieval.embedder import GeminiEmbedder, HashEmbedder
+from agentic_crag.adapters.retrieval.embedder import GeminiEmbedder
 from agentic_crag.adapters.retrieval.qdrant_hybrid import QdrantHybridStore
 from agentic_crag.adapters.search.web_search import WebSearchAdapter
 from agentic_crag.api.routes import chat as chat_routes
@@ -33,11 +33,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         primary = GeminiClient(settings.gemini_api_key)
         fallback = GroqClient(settings.groq_api_key)
         llm = FailoverLLMGateway(primary, fallback, on_failover=on_failover)
-        embedder: Any
-        if settings.gemini_api_key:
-            embedder = GeminiEmbedder(settings.gemini_api_key)
-        else:
-            embedder = HashEmbedder(dims=settings.embedding_dims)
+        embedder: Any = GeminiEmbedder(settings.gemini_api_key)
         qdrant = AsyncQdrantClient(url=settings.qdrant_url)
         store = QdrantHybridStore(
             qdrant,
@@ -47,6 +43,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
         web = WebSearchAdapter()
         graph = build_crag_graph(llm, store, web)
+    else:
+        missing = [
+            name
+            for name, val in (
+                ("GEMINI_API_KEY", settings.gemini_api_key),
+                ("GROQ_API_KEY", settings.groq_api_key),
+            )
+            if not val
+        ]
+        print(
+            f"[agentic-crag] Chat graph disabled; missing {', '.join(missing)}. "
+            "POST /api/v1/chat/stream will return 503 until keys load and process restarts."
+        )
 
     app.state.graph = graph
     app.state.qdrant = qdrant

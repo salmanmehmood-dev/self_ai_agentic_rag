@@ -12,7 +12,10 @@ def get_compiled_graph(request: Request) -> Any:
     if graph is None:
         raise HTTPException(
             status_code=503,
-            detail="Chat graph not configured (missing LLM/retriever wiring)",
+            detail=(
+                "Chat graph not configured. Set GEMINI_API_KEY and GROQ_API_KEY "
+                "in repo-root .env (or backend/.env), then restart uvicorn."
+            ),
         )
     return graph
 

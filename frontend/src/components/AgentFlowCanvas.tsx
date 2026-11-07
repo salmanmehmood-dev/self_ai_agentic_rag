@@ -167,7 +167,6 @@ export function AgentFlowCanvas({ live }: { live: GraphLiveState }) {
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
-        proOptions={{ hideAttribution: true }}
       >
         <Background gap={18} size={1} color="#1e293b" />
       </ReactFlow>

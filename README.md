@@ -9,13 +9,17 @@ Phases 0–9 complete (scaffold → workbench → golden evals + CI). See roadma
 ## Quick start
 
 ```bash
+# Once: copy keys into repo-root .env (GEMINI_API_KEY + GROQ_API_KEY required for chat)
+cp .env.example .env
+
 # Infra: Qdrant (6333) + Phoenix UI (6006)
 docker compose up -d
 
-# Backend
+# Backend (loads ../.env from repo root automatically)
 cd backend && uv sync --extra dev
 uv run uvicorn agentic_crag.api.main:app --reload --port 8000
 # GET http://localhost:8000/health
+
 
 # Frontend
 cd frontend && cp .env.local.example .env.local && npm install && npm run dev
