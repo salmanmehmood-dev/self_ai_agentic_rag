@@ -6,6 +6,7 @@ import hashlib
 import math
 
 from google import genai
+from google.genai import types
 
 from agentic_crag.adapters.llm.errors import raise_mapped_provider_error
 
@@ -38,7 +39,10 @@ class GeminiEmbedder:
         client: genai.Client | None = None,
     ) -> None:
         self._model = model
-        self._client = client or genai.Client(api_key=api_key)
+        self._client = client or genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(api_version="v1beta"),
+        )
 
     async def embed_documents(self, texts: list[str]) -> list[list[float]]:
         try:

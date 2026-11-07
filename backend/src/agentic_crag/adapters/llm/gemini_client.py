@@ -22,7 +22,11 @@ class GeminiClient:
         client: genai.Client | None = None,
     ) -> None:
         self._model = model
-        self._client = client or genai.Client(api_key=api_key)
+        # system_instruction + JSON schema require v1beta (v1 → 400 INVALID_ARGUMENT).
+        self._client = client or genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(api_version="v1beta"),
+        )
 
     async def generate_structured(
         self,

@@ -34,7 +34,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         fallback = GroqClient(settings.groq_api_key)
         llm = FailoverLLMGateway(primary, fallback, on_failover=on_failover)
         embedder: Any = GeminiEmbedder(settings.gemini_api_key)
-        qdrant = AsyncQdrantClient(url=settings.qdrant_url)
+        qdrant = AsyncQdrantClient(
+            url=settings.qdrant_url,
+            check_compatibility=False,
+        )
         store = QdrantHybridStore(
             qdrant,
             embedder,
