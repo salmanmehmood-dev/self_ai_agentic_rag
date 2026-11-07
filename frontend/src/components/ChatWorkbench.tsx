@@ -1,40 +1,70 @@
 "use client";
 
+import { useCallback, useState } from "react";
+
 import { useAgentChat } from "../hooks/useAgentChat";
 import { AgentFlowCanvas } from "./AgentFlowCanvas";
+import { CitedAnswer } from "./CitedAnswer";
+import { EvalsDrawer } from "./EvalsDrawer";
 import { GraderInspector } from "./GraderInspector";
 import { ThoughtTimeline } from "./ThoughtTimeline";
 
 const PRESETS = [
   {
-    label: "High-confidence match",
+    tone: "emerald" as const,
+    label: "Scenario 1: Direct high-confidence match",
     query: "How does Gemini to Groq failover work after a 429?",
   },
   {
-    label: "Ambiguous → rewrite",
+    tone: "amber" as const,
+    label: "Scenario 2: Ambiguous → rewrite loop",
     query: "What about the SLA xyz failover thing?",
   },
   {
-    label: "Out-of-corpus → web",
+    tone: "cyan" as const,
+    label: "Scenario 3: Out-of-corpus → web fallback",
     query: "Latest news on Qdrant hybrid RRF fusion outside our docs",
   },
 ];
 
+const TONE_CLASS = {
+  emerald:
+    "border-emerald-700/50 bg-emerald-50 text-emerald-950 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/70",
+  amber:
+    "border-amber-700/50 bg-amber-50 text-amber-950 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-950/70",
+  cyan: "border-cyan-700/50 bg-cyan-50 text-cyan-950 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-200 dark:hover:bg-cyan-950/70",
+};
+
 export function ChatWorkbench() {
   const { messages, input, setInput, send, stop, streaming, error, graphLive } =
     useAgentChat();
+  const [focusCiteIndex, setFocusCiteIndex] = useState<number | null>(null);
+  const [evalsOpen, setEvalsOpen] = useState(false);
+
+  const onCite = useCallback((index: number) => {
+    setFocusCiteIndex(index);
+  }, []);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 lg:flex-row lg:gap-6">
       <div className="flex min-h-0 flex-1 flex-col lg:max-w-[52%]">
-        <header className="mb-6">
-          <p className="text-sm tracking-wide text-zinc-500">Agentic CRAG</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Workbench
-          </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Live agent timeline + streamed answer over typed SSE.
-          </p>
+        <header className="mb-6 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm tracking-wide text-zinc-500">Agentic CRAG</p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              Workbench
+            </h1>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              Live agent timeline + streamed answer over typed SSE.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEvalsOpen(true)}
+            className="shrink-0 border border-zinc-300 px-3 py-1.5 text-xs text-zinc-800 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+          >
+            View evals &amp; benchmarks
+          </button>
         </header>
 
         <div className="mb-4 flex flex-wrap gap-2">
@@ -43,8 +73,11 @@ export function ChatWorkbench() {
               key={p.label}
               type="button"
               disabled={streaming}
-              onClick={() => void send(p.query)}
-              className="border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-left text-xs text-zinc-800 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              onClick={() => {
+                setFocusCiteIndex(null);
+                void send(p.query);
+              }}
+              className={`border px-3 py-1.5 text-left text-xs disabled:opacity-50 ${TONE_CLASS[p.tone]}`}
             >
               {p.label}
             </button>
@@ -77,10 +110,19 @@ export function ChatWorkbench() {
               {m.role === "assistant" ? (
                 <ThoughtTimeline steps={m.timeline} />
               ) : null}
-              <div className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-900 dark:text-zinc-100">
-                {m.content ||
-                  (streaming && m.role === "assistant" ? "…" : null)}
-              </div>
+              {m.role === "assistant" ? (
+                <CitedAnswer
+                  content={m.content}
+                  chunks={graphLive.chunks}
+                  evaluations={graphLive.evaluations}
+                  onCite={onCite}
+                  streaming={streaming}
+                />
+              ) : (
+                <div className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-900 dark:text-zinc-100">
+                  {m.content}
+                </div>
+              )}
               {m.verification ? (
                 <p className="mt-3 text-xs text-zinc-500">
                   {m.verification.is_grounded ? "Verified" : "Partial"} ·{" "}
@@ -147,8 +189,10 @@ export function ChatWorkbench() {
           </h2>
           <AgentFlowCanvas live={graphLive} />
         </div>
-        <GraderInspector live={graphLive} />
+        <GraderInspector live={graphLive} focusCiteIndex={focusCiteIndex} />
       </aside>
+
+      <EvalsDrawer open={evalsOpen} onClose={() => setEvalsOpen(false)} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   GradeEvaluation,
@@ -35,15 +35,37 @@ function badge(evaln: GradeEvaluation | undefined) {
   );
 }
 
-function ChunkCard({ row }: { row: Row }) {
+function ChunkCard({
+  row,
+  focused,
+  citeIndex,
+}: {
+  row: Row;
+  focused: boolean;
+  citeIndex: number;
+}) {
   const filtered = row.evaluation && !row.evaluation.relevant;
-  const [open, setOpen] = useState(!filtered);
+  const [open, setOpen] = useState(!filtered || focused);
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!focused) return;
+    setOpen(true);
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [focused]);
 
   return (
     <article
-      className={`border border-slate-800 p-3 transition-opacity ${
-        filtered && !open ? "opacity-45" : "opacity-100"
-      } ${filtered ? "bg-slate-950/40" : "bg-slate-900/50"}`}
+      ref={ref}
+      id={`inspector-chunk-${citeIndex}`}
+      data-chunk-id={row.chunk.chunk_id}
+      className={`border p-3 transition-all ${
+        focused
+          ? "border-emerald-500 bg-emerald-950/30 ring-1 ring-emerald-500/60"
+          : "border-slate-800"
+      } ${filtered && !open && !focused ? "opacity-45" : "opacity-100"} ${
+        !focused && filtered ? "bg-slate-950/40" : ""
+      } ${!focused && !filtered ? "bg-slate-900/50" : ""}`}
     >
       <button
         type="button"
@@ -53,6 +75,7 @@ function ChunkCard({ row }: { row: Row }) {
       >
         <div className="min-w-0">
           <p className="truncate text-xs font-medium text-slate-100">
+            <span className="mr-1 text-slate-500">[{citeIndex}]</span>
             {row.chunk.source_file}
             {row.chunk.section_header
               ? ` · ${row.chunk.section_header}`
@@ -67,7 +90,11 @@ function ChunkCard({ row }: { row: Row }) {
       </button>
       {open ? (
         <div className="mt-2 space-y-1.5">
-          <p className="text-[11px] leading-relaxed text-slate-300">
+          <p
+            className={`text-[11px] leading-relaxed text-slate-300 ${
+              focused ? "bg-emerald-900/30 px-1 py-0.5" : ""
+            }`}
+          >
             {row.chunk.preview_text}
           </p>
           {row.evaluation?.reasoning ? (
@@ -81,7 +108,13 @@ function ChunkCard({ row }: { row: Row }) {
   );
 }
 
-export function GraderInspector({ live }: { live: GraphLiveState }) {
+export function GraderInspector({
+  live,
+  focusCiteIndex,
+}: {
+  live: GraphLiveState;
+  focusCiteIndex: number | null;
+}) {
   const rows = useMemo(() => {
     const byId = new Map(
       live.evaluations.map((e) => [e.chunk_id, e] as const),
@@ -116,8 +149,13 @@ export function GraderInspector({ live }: { live: GraphLiveState }) {
         </p>
       ) : (
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-          {rows.map((row) => (
-            <ChunkCard key={row.chunk.chunk_id} row={row} />
+          {rows.map((row, i) => (
+            <ChunkCard
+              key={row.chunk.chunk_id}
+              row={row}
+              citeIndex={i + 1}
+              focused={focusCiteIndex === i + 1}
+            />
           ))}
         </div>
       )}
