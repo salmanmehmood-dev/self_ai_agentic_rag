@@ -58,12 +58,18 @@ class VerificationCompleteData(BaseModel):
     confidence_score: float
     provider_used: Literal["gemini-2.5-flash", "groq-llama-3.3-70b"]
     total_latency_ms: int
+    status: Literal["verified", "partial_verification"] = "verified"
 
 
 class ProviderFailoverData(BaseModel):
     from_provider: str
     to_provider: str
     reason: str
+
+
+class SystemWarningData(BaseModel):
+    code: str
+    message: str
 
 
 class NodeTransitionEvent(BaseModel):
@@ -101,6 +107,11 @@ class ProviderFailoverEvent(BaseModel):
     data: ProviderFailoverData
 
 
+class SystemWarningEvent(BaseModel):
+    event: Literal["system_warning"] = "system_warning"
+    data: SystemWarningData
+
+
 AgentSSEEvent = Annotated[
     NodeTransitionEvent
     | RetrievalResultsEvent
@@ -108,6 +119,7 @@ AgentSSEEvent = Annotated[
     | QueryRewrittenEvent
     | TokenChunkEvent
     | VerificationCompleteEvent
-    | ProviderFailoverEvent,
+    | ProviderFailoverEvent
+    | SystemWarningEvent,
     Field(discriminator="event"),
 ]

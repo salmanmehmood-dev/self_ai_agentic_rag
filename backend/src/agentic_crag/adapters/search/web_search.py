@@ -1,4 +1,4 @@
-"""Tavily-primary optional; DuckDuckGo fallback with 4s timeout (E04)."""
+"""Tavily primary (optional key) + DuckDuckGo fallback with 4s timeout (E04)."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ import asyncio
 import re
 import uuid
 from collections.abc import Awaitable, Callable
+
+import httpx
 
 from agentic_crag.domain.entities import DocumentChunk
 from agentic_crag.domain.exceptions import WebSearchTimeoutError
@@ -40,22 +42,71 @@ async def _duckduckgo_search(query: str, max_results: int) -> list[tuple[str, st
     return await asyncio.to_thread(_duckduckgo_search_sync, query, max_results)
 
 
+async def _tavily_search(
+    query: str,
+    max_results: int,
+    *,
+    api_key: str,
+    timeout_s: float,
+) -> list[tuple[str, str, str]]:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(timeout_s)) as client:
+        resp = await client.post(
+            "https://api.tavily.com/search",
+            json={
+                "api_key": api_key,
+                "query": query,
+                "max_results": max_results,
+                "include_answer": False,
+            },
+        )
+        resp.raise_for_status()
+        payload = resp.json()
+    rows: list[tuple[str, str, str]] = []
+    for item in payload.get("results") or []:
+        title = str(item.get("title") or "web")
+        href = str(item.get("url") or "web://unknown")
+        body = str(item.get("content") or item.get("snippet") or "")
+        rows.append((title, href, body))
+    return rows
+
+
 class WebSearchAdapter:
     def __init__(
         self,
         *,
         timeout_s: float = 4.0,
+        tavily_api_key: str | None = None,
         search_fn: SearchFn | None = None,
     ) -> None:
         self._timeout_s = timeout_s
-        self._search_fn = search_fn or _duckduckgo_search
+        self._tavily_api_key = tavily_api_key
+        self._search_fn = search_fn
 
     async def search(self, query: str, max_results: int = 5) -> list[DocumentChunk]:
         try:
-            rows = await asyncio.wait_for(
-                self._search_fn(query, max_results),
-                timeout=self._timeout_s,
-            )
+            if self._search_fn is not None:
+                rows = await asyncio.wait_for(
+                    self._search_fn(query, max_results),
+                    timeout=self._timeout_s,
+                )
+            elif self._tavily_api_key:
+                try:
+                    rows = await _tavily_search(
+                        query,
+                        max_results,
+                        api_key=self._tavily_api_key,
+                        timeout_s=self._timeout_s,
+                    )
+                except Exception:
+                    rows = await asyncio.wait_for(
+                        _duckduckgo_search(query, max_results),
+                        timeout=self._timeout_s,
+                    )
+            else:
+                rows = await asyncio.wait_for(
+                    _duckduckgo_search(query, max_results),
+                    timeout=self._timeout_s,
+                )
         except TimeoutError as exc:
             raise WebSearchTimeoutError(f"web search timed out: {exc}") from exc
 

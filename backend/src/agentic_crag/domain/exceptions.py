@@ -24,7 +24,7 @@ class WebSearchTimeoutError(AgenticCragError):
 
 
 class MalformedPdfError(AgenticCragError):
-    code = "E06_SCANNED_OR_EMPTY_PDF"
+    code = "ERR_SCANNED_OR_EMPTY_PDF"
 
 
 class QueryTooLongError(AgenticCragError):

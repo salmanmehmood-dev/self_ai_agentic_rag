@@ -123,10 +123,29 @@ export function ChatWorkbench() {
                   {m.content}
                 </div>
               )}
+              {m.warnings?.length ? (
+                <ul className="mt-2 space-y-1 text-xs text-amber-800 dark:text-amber-300">
+                  {m.warnings.map((w, i) => (
+                    <li key={`${w.code}-${i}`}>
+                      Warning [{w.code}]: {w.message}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               {m.verification ? (
-                <p className="mt-3 text-xs text-zinc-500">
-                  {m.verification.is_grounded ? "Verified" : "Partial"} ·{" "}
-                  {m.verification.provider_used} ·{" "}
+                <p
+                  className={
+                    m.verification.status === "partial_verification"
+                      ? "mt-3 inline-flex items-center gap-2 border border-amber-600/60 bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-950/50 dark:text-amber-200"
+                      : "mt-3 text-xs text-zinc-500"
+                  }
+                >
+                  {m.verification.status === "partial_verification"
+                    ? "Caution · partial verification"
+                    : m.verification.is_grounded
+                      ? "Verified"
+                      : "Partial"}{" "}
+                  · {m.verification.provider_used} ·{" "}
                   {m.verification.total_latency_ms}ms · confidence{" "}
                   {m.verification.confidence_score.toFixed(2)}
                 </p>

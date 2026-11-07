@@ -17,6 +17,7 @@ from agentic_crag.domain.events import (
     QueryRewrittenData,
     RetrievalChunkPayload,
     RetrievalResultsData,
+    SystemWarningData,
     TokenChunkData,
     VerificationCompleteData,
 )
@@ -86,6 +87,16 @@ async def stream_chat_events(
             if graph_node == "hybrid_retrieve":
                 attempt += 1
                 chunks: list[DocumentChunk] = list(partial.get("retrieved_chunks") or [])
+                if attempt == 1 and len(chunks) == 0:
+                    yield format_sse(
+                        "system_warning",
+                        SystemWarningData(
+                            code="E01_EMPTY_CORPUS",
+                            message=(
+                                "Vector store returned 0 chunks; rewrite/web fallback may follow."
+                            ),
+                        ),
+                    )
                 yield format_sse(
                     "retrieval_results",
                     RetrievalResultsData(
@@ -153,6 +164,9 @@ async def stream_chat_events(
                     provider = provider_used
                     if provider not in {"gemini-2.5-flash", "groq-llama-3.3-70b"}:
                         provider = "gemini-2.5-flash"
+                    status = getattr(report, "status", None) or (
+                        "verified" if report.is_grounded else "partial_verification"
+                    )
                     yield format_sse(
                         "verification_complete",
                         VerificationCompleteData(
@@ -161,5 +175,6 @@ async def stream_chat_events(
                             confidence_score=float(report.confidence_score),
                             provider_used=provider,  # type: ignore[arg-type]
                             total_latency_ms=elapsed,
+                            status=status,  # type: ignore[arg-type]
                         ),
                     )

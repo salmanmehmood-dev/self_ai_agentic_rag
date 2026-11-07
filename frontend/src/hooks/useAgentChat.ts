@@ -138,6 +138,11 @@ export function useAgentChat() {
               }));
             } else if (ev.event === "query_rewritten") {
               setGraphLive((g) => ({ ...g, rewriteActive: true }));
+            } else if (ev.event === "system_warning") {
+              patchAssistant((m) => ({
+                ...m,
+                warnings: [...(m.warnings ?? []), { ...ev.data }],
+              }));
             }
           },
           onError(err) {

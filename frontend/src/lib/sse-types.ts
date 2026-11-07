@@ -71,6 +71,7 @@ export type AgentSSEEvent =
         confidence_score: number;
         provider_used: "gemini-2.5-flash" | "groq-llama-3.3-70b";
         total_latency_ms: number;
+        status?: "verified" | "partial_verification";
       };
     }
   | {
@@ -80,6 +81,10 @@ export type AgentSSEEvent =
         to_provider: string;
         reason: string;
       };
+    }
+  | {
+      event: "system_warning";
+      data: { code: string; message: string };
     };
 
 export type TimelineStep = {
@@ -100,7 +105,9 @@ export type ChatMessage = {
     confidence_score: number;
     provider_used: string;
     total_latency_ms: number;
+    status?: "verified" | "partial_verification";
   };
+  warnings?: Array<{ code: string; message: string }>;
 };
 
 export type RetrievalChunk = {
