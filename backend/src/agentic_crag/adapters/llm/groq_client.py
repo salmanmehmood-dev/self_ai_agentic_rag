@@ -11,7 +11,8 @@ from agentic_crag.adapters.llm.errors import raise_mapped_provider_error
 
 T = TypeVar("T", bound=BaseModel)
 
-_GROQ_MODEL = "llama-3.3-70b-versatile"
+# llama-3.3-70b-versatile shut down for free/dev tiers 2026-08-16.
+_GROQ_MODEL = "openai/gpt-oss-120b"
 
 
 class GroqClient:

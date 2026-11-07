@@ -75,7 +75,7 @@ This system implements an enterprise-grade **Corrective & Self-Reflective Retrie
 ### 2.2 Infrastructure & Zero-Cost Stack Budget
 | Subsystem | Primary Choice | Fallback Choice | Free Tier Quota / Constraints |
 | :--- | :--- | :--- | :--- |
-| **LLM Inference** | Google Gemini 2.5 Flash (`google-genai`) | Groq (`llama-3.3-70b-versatile`) | Gemini: 15 RPM, 1M TPM. Groq: 30 RPM, 14.4K RPD |
+| **LLM Inference** | Google Gemini 2.5 Flash (`google-genai`) | Groq (`openai/gpt-oss-120b`; replaces retired `llama-3.3-70b-versatile`) | Gemini: 15 RPM, 1M TPM. Groq free/dev tiers |
 | **Dense Embeddings** | Google `gemini-embedding-001` (output 768-dim; replaces shut-down `text-embedding-004`) | Local `FastEmbed` (`BAAI/bge-small-en-v1.5`) / `HashEmbedder` in tests | Gemini embed free tier; FastEmbed: CPU-native, 0 API latency |
 | **Sparse Embeddings** | Qdrant FastEmbed `Qdrant/bm25` | `rank_bm25` in-memory index | 100% Free Local / Docker |
 | **Vector Store** | Qdrant (Docker or Cloud Free 1GB) | ChromaDB Persistent Client | Qdrant Cloud: 1GB RAM persistent cluster free forever |

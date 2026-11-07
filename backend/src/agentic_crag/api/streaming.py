@@ -58,123 +58,133 @@ async def stream_chat_events(
     attempt = 0
     failovers = failover_events if failover_events is not None else []
 
-    async for update in graph.astream(initial, stream_mode="updates"):
-        if is_disconnected is not None and await is_disconnected():
-            break
-        if not isinstance(update, dict):
-            continue
-        for graph_node, partial in update.items():
-            if not isinstance(partial, dict):
+    try:
+        async for update in graph.astream(initial, stream_mode="updates"):
+            if is_disconnected is not None and await is_disconnected():
+                break
+            if not isinstance(update, dict):
                 continue
-            sse_node = _NODE_MAP.get(graph_node, "router")
+            for graph_node, partial in update.items():
+                if not isinstance(partial, dict):
+                    continue
+                sse_node = _NODE_MAP.get(graph_node, "router")
 
-            for ev in partial.get("node_trace") or []:
-                if isinstance(ev, NodeExecutionEvent):
-                    yield format_sse(
-                        "node_transition",
-                        NodeTransitionData(
-                            node=sse_node,  # type: ignore[arg-type]
-                            status=ev.status,
-                            latency_ms=ev.latency_ms,
-                            summary=ev.summary,
-                        ),
-                    )
-
-            while failovers:
-                fo = failovers.pop(0)
-                yield format_sse("provider_failover", fo)
-
-            if graph_node == "hybrid_retrieve":
-                attempt += 1
-                chunks: list[DocumentChunk] = list(partial.get("retrieved_chunks") or [])
-                if attempt == 1 and len(chunks) == 0:
-                    yield format_sse(
-                        "system_warning",
-                        SystemWarningData(
-                            code="E01_EMPTY_CORPUS",
-                            message=(
-                                "Vector store returned 0 chunks; rewrite/web fallback may follow."
+                for ev in partial.get("node_trace") or []:
+                    if isinstance(ev, NodeExecutionEvent):
+                        yield format_sse(
+                            "node_transition",
+                            NodeTransitionData(
+                                node=sse_node,  # type: ignore[arg-type]
+                                status=ev.status,
+                                latency_ms=ev.latency_ms,
+                                summary=ev.summary,
                             ),
-                        ),
-                    )
-                yield format_sse(
-                    "retrieval_results",
-                    RetrievalResultsData(
-                        query_used=str(partial.get("active_query") or prev_query),
-                        attempt=attempt,
-                        chunks=[
-                            RetrievalChunkPayload(
-                                chunk_id=c.chunk_id,
-                                source_file=c.source_file,
-                                section_header=c.section_header,
-                                rrf_score=float(c.rrf_score or 0.0),
-                                dense_rank=int(c.dense_rank or 0),
-                                sparse_rank=int(c.sparse_rank or 0),
-                                preview_text=c.text[:240],
-                            )
-                            for c in chunks
-                        ],
-                    ),
-                )
+                        )
 
-            if graph_node == "grade_documents_batch":
-                graded: list[GradedChunk] = list(partial.get("graded_chunks") or [])
-                yield format_sse(
-                    "grading_verdict",
-                    GradingVerdictData(
-                        passed_count=len(graded),
-                        rejected_count=0,
-                        evaluations=[
-                            ChunkEvaluationPayload(
-                                chunk_id=g.chunk_id,
-                                relevant=g.relevant,
-                                confidence=g.confidence,
-                                reasoning=g.reasoning,
-                            )
-                            for g in graded
-                        ],
-                    ),
-                )
+                while failovers:
+                    fo = failovers.pop(0)
+                    yield format_sse("provider_failover", fo)
 
-            if graph_node == "rewrite_query":
-                new_q = str(partial.get("active_query") or prev_query)
-                yield format_sse(
-                    "query_rewritten",
-                    QueryRewrittenData(
-                        previous_query=prev_query,
-                        new_query=new_q,
-                        reason="query rewrite",
-                        rewrite_count=int(partial.get("rewrite_count") or 0),
-                    ),
-                )
-                prev_query = new_q
-
-            if graph_node in {"synthesize_response", "direct_answer"}:
-                draft = str(partial.get("draft_answer") or "")
-                step = 24
-                for i in range(0, len(draft), step):
-                    if is_disconnected is not None and await is_disconnected():
-                        return
-                    yield format_sse("token_chunk", TokenChunkData(delta=draft[i : i + step]))
-
-            if graph_node == "verify_response":
-                report = partial.get("verification_report")
-                if report is not None:
-                    elapsed = int((time.perf_counter() - started) * 1000)
-                    provider = provider_used
-                    if provider not in {"gemini-2.5-flash", "groq-llama-3.3-70b"}:
-                        provider = "gemini-2.5-flash"
-                    status = getattr(report, "status", None) or (
-                        "verified" if report.is_grounded else "partial_verification"
-                    )
+                if graph_node == "hybrid_retrieve":
+                    attempt += 1
+                    chunks: list[DocumentChunk] = list(partial.get("retrieved_chunks") or [])
+                    if attempt == 1 and len(chunks) == 0:
+                        yield format_sse(
+                            "system_warning",
+                            SystemWarningData(
+                                code="E01_EMPTY_CORPUS",
+                                message=(
+                                    "Vector store returned 0 chunks; "
+                                    "rewrite/web fallback may follow."
+                                ),
+                            ),
+                        )
                     yield format_sse(
-                        "verification_complete",
-                        VerificationCompleteData(
-                            is_grounded=bool(report.is_grounded),
-                            addresses_query=bool(report.addresses_query),
-                            confidence_score=float(report.confidence_score),
-                            provider_used=provider,  # type: ignore[arg-type]
-                            total_latency_ms=elapsed,
-                            status=status,  # type: ignore[arg-type]
+                        "retrieval_results",
+                        RetrievalResultsData(
+                            query_used=str(partial.get("active_query") or prev_query),
+                            attempt=attempt,
+                            chunks=[
+                                RetrievalChunkPayload(
+                                    chunk_id=c.chunk_id,
+                                    source_file=c.source_file,
+                                    section_header=c.section_header,
+                                    rrf_score=float(c.rrf_score or 0.0),
+                                    dense_rank=int(c.dense_rank or 0),
+                                    sparse_rank=int(c.sparse_rank or 0),
+                                    preview_text=c.text[:240],
+                                )
+                                for c in chunks
+                            ],
                         ),
                     )
+
+                if graph_node == "grade_documents_batch":
+                    graded: list[GradedChunk] = list(partial.get("graded_chunks") or [])
+                    yield format_sse(
+                        "grading_verdict",
+                        GradingVerdictData(
+                            passed_count=len(graded),
+                            rejected_count=0,
+                            evaluations=[
+                                ChunkEvaluationPayload(
+                                    chunk_id=g.chunk_id,
+                                    relevant=g.relevant,
+                                    confidence=g.confidence,
+                                    reasoning=g.reasoning,
+                                )
+                                for g in graded
+                            ],
+                        ),
+                    )
+
+                if graph_node == "rewrite_query":
+                    new_q = str(partial.get("active_query") or prev_query)
+                    yield format_sse(
+                        "query_rewritten",
+                        QueryRewrittenData(
+                            previous_query=prev_query,
+                            new_query=new_q,
+                            reason="query rewrite",
+                            rewrite_count=int(partial.get("rewrite_count") or 0),
+                        ),
+                    )
+                    prev_query = new_q
+
+                if graph_node in {"synthesize_response", "direct_answer"}:
+                    draft = str(partial.get("draft_answer") or "")
+                    step = 24
+                    for i in range(0, len(draft), step):
+                        if is_disconnected is not None and await is_disconnected():
+                            return
+                        yield format_sse(
+                            "token_chunk",
+                            TokenChunkData(delta=draft[i : i + step]),
+                        )
+
+                if graph_node == "verify_response":
+                    report = partial.get("verification_report")
+                    if report is not None:
+                        elapsed = int((time.perf_counter() - started) * 1000)
+                        provider = provider_used
+                        if provider not in {"gemini-2.5-flash", "groq-gpt-oss-120b"}:
+                            provider = "gemini-2.5-flash"
+                        status = getattr(report, "status", None) or (
+                            "verified" if report.is_grounded else "partial_verification"
+                        )
+                        yield format_sse(
+                            "verification_complete",
+                            VerificationCompleteData(
+                                is_grounded=bool(report.is_grounded),
+                                addresses_query=bool(report.addresses_query),
+                                confidence_score=float(report.confidence_score),
+                                provider_used=provider,  # type: ignore[arg-type]
+                                total_latency_ms=elapsed,
+                                status=status,  # type: ignore[arg-type]
+                            ),
+                        )
+    except Exception as exc:  # noqa: BLE001 — surface to UI instead of ASGI 500
+        yield format_sse(
+            "system_warning",
+            SystemWarningData(code="ERR_GRAPH_STREAM", message=str(exc)[:400]),
+        )

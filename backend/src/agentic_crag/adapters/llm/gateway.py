@@ -35,7 +35,7 @@ class FailoverLLMGateway:
         fallback: LLMClientPort,
         *,
         primary_name: str = "gemini-2.5-flash",
-        fallback_name: str = "groq-llama-3.3-70b",
+        fallback_name: str = "groq-gpt-oss-120b",
         on_failover: FailoverCallback | None = None,
         disable_retry_wait: bool = False,
     ) -> None:

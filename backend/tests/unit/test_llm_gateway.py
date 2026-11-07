@@ -77,4 +77,4 @@ async def test_gateway_retries_then_failovers_on_429() -> None:
     fallback.generate_structured.assert_awaited_once()
     assert len(events) == 1
     assert events[0].from_provider == "gemini-2.5-flash"
-    assert events[0].to_provider == "groq-llama-3.3-70b"
+    assert events[0].to_provider == "groq-gpt-oss-120b"

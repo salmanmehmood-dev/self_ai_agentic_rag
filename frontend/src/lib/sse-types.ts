@@ -69,7 +69,7 @@ export type AgentSSEEvent =
         is_grounded: boolean;
         addresses_query: boolean;
         confidence_score: number;
-        provider_used: "gemini-2.5-flash" | "groq-llama-3.3-70b";
+        provider_used: "gemini-2.5-flash" | "groq-gpt-oss-120b";
         total_latency_ms: number;
         status?: "verified" | "partial_verification";
       };

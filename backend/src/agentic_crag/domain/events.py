@@ -56,7 +56,7 @@ class VerificationCompleteData(BaseModel):
     is_grounded: bool
     addresses_query: bool
     confidence_score: float
-    provider_used: Literal["gemini-2.5-flash", "groq-llama-3.3-70b"]
+    provider_used: Literal["gemini-2.5-flash", "groq-gpt-oss-120b"]
     total_latency_ms: int
     status: Literal["verified", "partial_verification"] = "verified"
 

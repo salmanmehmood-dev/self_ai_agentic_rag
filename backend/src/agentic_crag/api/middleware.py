@@ -31,7 +31,7 @@ def configure_structlog() -> None:
 
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
+    async def dispatch(  # type: ignore[override]
         self,
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
@@ -43,7 +43,8 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
         started = time.perf_counter()
-        response = cast(Response, await call_next(request))
+        raw = await call_next(request)
+        response = cast(Response, raw)
         duration_ms = int((time.perf_counter() - started) * 1000)
         response.headers["X-Correlation-ID"] = correlation_id
         logger.info(

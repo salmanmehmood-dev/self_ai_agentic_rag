@@ -12,7 +12,7 @@
    * **ALWAYS** batch document grading (Node 3) and hallucination verification (Node 7) into a **single structured LLM invocation** per node execution. Maximum LLM calls per user request on the happy path must not exceed **3 calls** (Route + Grade + Synthesize/Verify).
 2. **Dual-Provider Automatic Failover**:
    * Every LLM call must go through the unified `LLMGatewayPort` adapter (`src/adapters/llm/gateway.py`).
-   * If Google Gemini raises `429 RESOURCE_EXHAUSTED` or `503 UNAVAILABLE`, catch the exception, emit an SSE event `provider_failover`, and immediately execute the identical structured prompt against **Groq (`llama-3.3-70b-versatile`)** without crashing the graph.
+   * If Google Gemini raises `429 RESOURCE_EXHAUSTED` or `503 UNAVAILABLE`, catch the exception, emit an SSE event `provider_failover`, and immediately execute the identical structured prompt against **Groq (`openai/gpt-oss-120b`)** without crashing the graph.
 3. **Strict Cyclic Loop Ceilings**:
    * Every conditional edge in LangGraph that loops backward (`rewrite_query` $\rightarrow$ `hybrid_retrieve`, or `verify_response` $\rightarrow$ `synthesize_response`) **MUST** check an explicit integer counter in `GraphState`.
    * Hard limits: `MAX_QUERY_REWRITES = 2`, `MAX_HALLUCINATION_RETRIES = 1`.
@@ -50,7 +50,7 @@ When writing node implementations, explicitly handle each of these 10 failure st
 | ID | Scenario | Mandatory Code Behavior |
 | :--- | :--- | :--- |
 | **E01** | **Vector Store Cold Start / Empty Collection** | Check `collection_exists()` and point count on startup. If count == 0, bypass Node 2 & Node 3, emit SSE warning, and route directly to `web_search_fallback` or trigger auto-ingestion of sample dataset. |
-| **E02** | **Gemini 429 Quota Exhausted** | `tenacity` decorator catches `429`, waits $2\text{s}$ with random jitter, retries once, then switches provider to Groq `llama-3.3-70b-versatile`. |
+| **E02** | **Gemini 429 Quota Exhausted** | `tenacity` decorator catches `429`, waits $2\text{s}$ with random jitter, retries once, then switches provider to Groq `openai/gpt-oss-120b`. |
 | **E03** | **All Chunks Score $< 0.70$ After 2 Rewrites** | Do not raise an exception. Set `web_fallback_triggered = True` and transition to `web_search_fallback`. |
 | **E04** | **Web Search Timeout / Network Failure** | Enforce `httpx.Timeout(4.0)` on Tavily/DuckDuckGo. On timeout, fall back to the highest-scoring local chunk (even if $< 0.70$) and set `degraded_mode = True` in `GraphState`. |
 | **E05** | **Client Disconnects Mid-Stream** | Monitor `await request.is_disconnected()` inside FastAPI SSE generator. Cancel the in-flight LangGraph task immediately to save LLM tokens. |

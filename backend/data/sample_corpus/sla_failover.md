@@ -3,8 +3,9 @@
 ## Overview
 
 This Agentic CRAG system uses **Google Gemini 2.5 Flash** as the primary LLM and
-**Groq `llama-3.3-70b-versatile`** as the automatic failover provider. All structured
-generation goes through the unified `LLMGatewayPort` adapter.
+**Groq `openai/gpt-oss-120b`** as the automatic failover provider (replaces retired
+`llama-3.3-70b-versatile`). All structured generation goes through the unified
+`LLMGatewayPort` adapter.
 
 ## Gemini free-tier quota
 
@@ -19,7 +20,7 @@ When Gemini returns HTTP **429** (quota exhausted / rate limited):
 1. A `tenacity` decorator catches the 429.
 2. The gateway waits **2 seconds** with random jitter and **retries once**.
 3. If the retry still fails, the gateway emits an SSE event `provider_failover`
-   with `from_provider=gemini-2.5-flash` and `to_provider=groq-llama-3.3-70b`.
+   with `from_provider=gemini-2.5-flash` and `to_provider=groq-gpt-oss-120b`.
 4. The **identical structured prompt** is executed against Groq without aborting
    the graph.
 
