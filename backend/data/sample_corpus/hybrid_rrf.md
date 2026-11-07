@@ -4,7 +4,8 @@
 
 Node 2 (`hybrid_retrieve`) queries Qdrant with **Prefetch** for:
 
-- Dense vectors from Gemini `text-embedding-004` (768 dimensions)
+- Dense vectors from Gemini `gemini-embedding-001` truncated to 768 dimensions
+  (replaces deprecated `text-embedding-004`, shut down 2026-01-14)
 - Sparse hashed TF vectors (BM25-shaped, local — no FastEmbed download required)
 
 Results are fused with **Reciprocal Rank Fusion (RRF)** and the top $K=5$ chunks

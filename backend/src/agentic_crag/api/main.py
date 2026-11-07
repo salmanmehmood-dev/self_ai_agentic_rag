@@ -37,7 +37,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         primary = GeminiClient(settings.gemini_api_key)
         fallback = GroqClient(settings.groq_api_key)
         llm = FailoverLLMGateway(primary, fallback, on_failover=on_failover)
-        embedder: Any = GeminiEmbedder(settings.gemini_api_key)
+        embedder: Any = GeminiEmbedder(
+            settings.gemini_api_key,
+            dims=settings.embedding_dims,
+        )
         qdrant = AsyncQdrantClient(
             url=settings.qdrant_url,
             check_compatibility=False,
@@ -50,7 +53,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
         ingest = MarkdownIngestService(store)
         # E01: empty collection → load sample docs so hybrid retrieve is usable.
-        await ensure_sample_corpus(ingest)
+        # Soft-fail: embedding outages must not block chat (degrades to web path).
+        try:
+            await ensure_sample_corpus(ingest)
+        except Exception as exc:  # noqa: BLE001 — boot must continue
+            print(f"[agentic-crag] E01 sample ingest failed (continuing): {exc}")
         web = WebSearchAdapter()
         graph = build_crag_graph(llm, store, web)
     else:

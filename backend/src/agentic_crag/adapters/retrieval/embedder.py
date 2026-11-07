@@ -31,14 +31,24 @@ class HashEmbedder:
 
 
 class GeminiEmbedder:
+    """Gemini dense embedder.
+
+    Spec HLD listed ``text-embedding-004`` (768-d); that model was shut down
+    2026-01-14. Use ``gemini-embedding-001`` with ``output_dimensionality=768``
+    so Qdrant collection size stays aligned with ``settings.embedding_dims``.
+    """
+
     def __init__(
         self,
         api_key: str,
         *,
-        model: str = "text-embedding-004",
+        model: str = "gemini-embedding-001",
+        dims: int = 768,
         client: genai.Client | None = None,
     ) -> None:
         self._model = model
+        self._dims = dims
+        # Embeddings live on v1beta; keep LLM generate on its own client.
         self._client = client or genai.Client(
             api_key=api_key,
             http_options=types.HttpOptions(api_version="v1beta"),
@@ -49,6 +59,7 @@ class GeminiEmbedder:
             result = await self._client.aio.models.embed_content(
                 model=self._model,
                 contents=texts,
+                config=types.EmbedContentConfig(output_dimensionality=self._dims),
             )
         except Exception as exc:  # noqa: BLE001
             raise_mapped_provider_error(exc, provider="gemini-embed")

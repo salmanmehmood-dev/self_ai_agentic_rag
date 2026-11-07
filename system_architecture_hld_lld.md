@@ -76,7 +76,7 @@ This system implements an enterprise-grade **Corrective & Self-Reflective Retrie
 | Subsystem | Primary Choice | Fallback Choice | Free Tier Quota / Constraints |
 | :--- | :--- | :--- | :--- |
 | **LLM Inference** | Google Gemini 2.5 Flash (`google-genai`) | Groq (`llama-3.3-70b-versatile`) | Gemini: 15 RPM, 1M TPM. Groq: 30 RPM, 14.4K RPD |
-| **Dense Embeddings** | Google `text-embedding-004` (768-dim) | Local `FastEmbed` (`BAAI/bge-small-en-v1.5`) | Gemini: 1,500 RPM free; FastEmbed: CPU-native, 0 API latency |
+| **Dense Embeddings** | Google `gemini-embedding-001` (output 768-dim; replaces shut-down `text-embedding-004`) | Local `FastEmbed` (`BAAI/bge-small-en-v1.5`) / `HashEmbedder` in tests | Gemini embed free tier; FastEmbed: CPU-native, 0 API latency |
 | **Sparse Embeddings** | Qdrant FastEmbed `Qdrant/bm25` | `rank_bm25` in-memory index | 100% Free Local / Docker |
 | **Vector Store** | Qdrant (Docker or Cloud Free 1GB) | ChromaDB Persistent Client | Qdrant Cloud: 1GB RAM persistent cluster free forever |
 | **Web Fallback** | Tavily Search API (Research Tier) | `duckduckgo-search` (Async DDGS) | Tavily: 1,000 req/month free (no CC); DDGS: Unlimited free |

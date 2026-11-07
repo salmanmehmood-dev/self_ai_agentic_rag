@@ -33,4 +33,4 @@ when a request transparently switched providers mid-pipeline.
 ## Non-goals
 
 Failover does **not** change embedding providers mid-request. Dense embeddings stay
-on Gemini `text-embedding-004` (or the local hash stub in tests).
+on Gemini `gemini-embedding-001` at 768 dims (or the local hash stub in tests).
