@@ -102,3 +102,29 @@ export type ChatMessage = {
     total_latency_ms: number;
   };
 };
+
+export type RetrievalChunk = {
+  chunk_id: string;
+  source_file: string;
+  section_header: string;
+  rrf_score: number;
+  dense_rank: number;
+  sparse_rank: number;
+  preview_text: string;
+};
+
+export type GradeEvaluation = {
+  chunk_id: string;
+  relevant: boolean;
+  confidence: number;
+  reasoning: string;
+};
+
+export type GraphLiveState = {
+  activeNode: AgentNode | null;
+  completedNodes: AgentNode[];
+  rewriteActive: boolean;
+  webActive: boolean;
+  chunks: RetrievalChunk[];
+  evaluations: GradeEvaluation[];
+};
