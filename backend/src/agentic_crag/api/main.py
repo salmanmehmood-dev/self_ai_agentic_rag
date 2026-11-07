@@ -10,9 +10,12 @@ from agentic_crag.adapters.llm.gateway import FailoverLLMGateway
 from agentic_crag.adapters.llm.gemini_client import GeminiClient
 from agentic_crag.adapters.llm.groq_client import GroqClient
 from agentic_crag.adapters.retrieval.embedder import GeminiEmbedder
+from agentic_crag.adapters.retrieval.ingest import MarkdownIngestService
 from agentic_crag.adapters.retrieval.qdrant_hybrid import QdrantHybridStore
+from agentic_crag.adapters.retrieval.sample_bootstrap import ensure_sample_corpus
 from agentic_crag.adapters.search.web_search import WebSearchAdapter
 from agentic_crag.api.routes import chat as chat_routes
+from agentic_crag.api.routes import ingest as ingest_routes
 from agentic_crag.config import settings
 from agentic_crag.domain.events import ProviderFailoverData
 from agentic_crag.orchestration.graph import build_crag_graph
@@ -28,6 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     qdrant: AsyncQdrantClient | None = None
     graph: Any | None = None
+    ingest: MarkdownIngestService | None = None
 
     if settings.gemini_api_key and settings.groq_api_key:
         primary = GeminiClient(settings.gemini_api_key)
@@ -44,6 +48,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             collection_name=settings.qdrant_collection,
             embedding_dims=settings.embedding_dims,
         )
+        ingest = MarkdownIngestService(store)
+        # E01: empty collection → load sample docs so hybrid retrieve is usable.
+        await ensure_sample_corpus(ingest)
         web = WebSearchAdapter()
         graph = build_crag_graph(llm, store, web)
     else:
@@ -62,6 +69,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     app.state.graph = graph
     app.state.qdrant = qdrant
+    app.state.ingest = ingest
     yield
     if qdrant is not None:
         await qdrant.close()
@@ -77,6 +85,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(chat_routes.router)
+    app.include_router(ingest_routes.router)
 
     @app.get("/health")
     async def health() -> dict[str, str]:

@@ -27,6 +27,9 @@ cd frontend && cp .env.local.example .env.local && npm install && npm run dev
 
 # Offline golden evals (8/30 subset, mocked LLM — no API keys)
 cd backend && uv run python evals/run_evals.py
+
+# Corpus: sample docs auto-ingest on boot if Qdrant is empty (E01).
+# Check / force: GET /api/v1/ingest/status · POST /api/v1/ingest/sample
 ```
 
 CI runs on push/PR via `.github/workflows/ci.yml` (ruff, mypy, pytest, golden evals, Next lint/build).
