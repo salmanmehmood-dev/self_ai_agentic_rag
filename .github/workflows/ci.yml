@@ -24,6 +24,8 @@ jobs:
         run: uv run mypy --strict src/agentic_crag
       - name: Pytest
         run: uv run pytest
+      - name: Golden evals (offline mocked)
+        run: uv run python evals/run_evals.py
 
   frontend:
     runs-on: ubuntu-latest

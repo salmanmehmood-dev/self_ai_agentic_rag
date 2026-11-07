@@ -4,7 +4,7 @@ Corrective + Self-Reflective Agentic RAG (LangGraph) with a Next.js agent workbe
 
 ## Status
 
-Phase 0 scaffold. See `docs/superpowers/plans/2026-11-06-agentic-crag-phase-roadmap.md`.
+Phases 0–9 complete (scaffold → workbench → golden evals + CI). See roadmap.
 
 ## Quick start
 
@@ -20,9 +20,12 @@ uv run uvicorn agentic_crag.api.main:app --reload --port 8000
 # Frontend
 cd frontend && cp .env.local.example .env.local && npm install && npm run dev
 # Workbench → http://localhost:3000 (SSE → backend :8000)
+
+# Offline golden evals (8/30 subset, mocked LLM — no API keys)
+cd backend && uv run python evals/run_evals.py
 ```
 
-CI runs on push/PR via `.github/workflows/ci.yml` (ruff, mypy, pytest, Next lint/build).
+CI runs on push/PR via `.github/workflows/ci.yml` (ruff, mypy, pytest, golden evals, Next lint/build).
 
 ## Docs
 
