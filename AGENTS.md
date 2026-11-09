@@ -20,7 +20,7 @@
 4. **Hexagonal Architecture Boundaries**:
    * `src/domain/` must contain **zero** imports from `langchain`, `langgraph`, `fastapi`, `qdrant_client`, or `google.genai`. Only standard library and `pydantic` are permitted in `domain/`.
 5. **Dual Runtime (`LOCAL_DEV_MODE`)**:
-   * Wire LLM and embedders only in the composition root (`adapters/runtime_factory.py` via FastAPI lifespan). LangGraph **nodes** must use **`LLMClientPort` / `EmbedderPort` only** — **never** import Ollama, Gemini, Groq, Routeway, FastEmbed, `google.genai`, or provider-specific clients inside graph nodes.
+   * Wire LLM and embedders only in the composition root (`backend/src/agentic_crag/adapters/runtime_factory.py` via FastAPI lifespan). LangGraph **nodes** must use **`LLMClientPort` / `EmbedderPort` only** — **never** import Ollama, Gemini, Groq, Routeway, FastEmbed, `google.genai`, or provider-specific clients inside graph nodes.
    * **Local** (`LOCAL_DEV_MODE=true`): `OllamaClient` + `FastEmbedEmbedder`; collection `crag_chunks_local` @ **384-d**. Ollama/network failures **fail fast** (`ProviderUnavailableError`) — **no** Gemini→Groq→Routeway failover (Invariant 2 does not apply locally).
    * **Cloud** (`LOCAL_DEV_MODE=false`): `LLMGateway` + `GeminiEmbedder` (`gemini-embedding-001`); collection `crag_chunks` @ **768-d**. Invariant 2 and E02 failover behavior apply unchanged.
    * On Qdrant dense-dimension mismatch at `ensure_collection`, **abort startup** — never auto-delete or recreate collections to “fix” dims.
