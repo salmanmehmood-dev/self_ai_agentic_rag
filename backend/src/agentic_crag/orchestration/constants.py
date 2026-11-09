@@ -1,4 +1,4 @@
-"""Hard loop ceilings from AGENTS.md."""
+"""Hard loop ceilings for corrective / self-RAG cycles."""
 
 MAX_QUERY_REWRITES = 2
 MAX_HALLUCINATION_RETRIES = 1

@@ -9,6 +9,7 @@ from collections.abc import Awaitable, Callable
 
 import httpx
 
+from agentic_crag.adapters.llm.rate_limit import AsyncRateLimiter
 from agentic_crag.domain.entities import DocumentChunk
 from agentic_crag.domain.exceptions import WebSearchTimeoutError
 
@@ -77,12 +78,16 @@ class WebSearchAdapter:
         timeout_s: float = 4.0,
         tavily_api_key: str | None = None,
         search_fn: SearchFn | None = None,
+        rate_limiter: AsyncRateLimiter | None = None,
     ) -> None:
         self._timeout_s = timeout_s
         self._tavily_api_key = tavily_api_key
         self._search_fn = search_fn
+        self._limiter = rate_limiter
 
     async def search(self, query: str, max_results: int = 5) -> list[DocumentChunk]:
+        if self._limiter is not None and self._tavily_api_key and self._search_fn is None:
+            await self._limiter.acquire()
         try:
             if self._search_fn is not None:
                 rows = await asyncio.wait_for(

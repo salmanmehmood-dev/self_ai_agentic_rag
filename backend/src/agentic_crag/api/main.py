@@ -58,6 +58,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     graph: Any | None = None
     ingest: MarkdownIngestService | None = None
     checkpoint_conn: Any | None = None
+    runtime = "local" if settings.local_dev_mode else "cloud"
+    active_collection = settings.active_qdrant_collection
+    active_dims = settings.active_embedding_dims
 
     limits = settings.tier_limits()
     chat_ip_limiter = AsyncIpRpmLimiter(limits.chat_per_ip_rpm)
@@ -80,8 +83,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if settings.qdrant_api_key:
             qdrant_kwargs["api_key"] = settings.qdrant_api_key
         qdrant = AsyncQdrantClient(**qdrant_kwargs)
-        active_collection = settings.active_qdrant_collection
-        active_dims = settings.active_embedding_dims
         store = QdrantHybridStore(
             qdrant,
             embedder,
@@ -105,7 +106,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             settings.checkpoint_path
         )
         graph = build_crag_graph(llm, store, web, checkpointer=checkpointer)
-        runtime = "local" if settings.local_dev_mode else "cloud"
         model = (
             settings.ollama_model
             if settings.local_dev_mode
@@ -133,6 +133,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.qdrant = qdrant
     app.state.ingest = ingest
     app.state.checkpoint_conn = checkpoint_conn
+    app.state.runtime = runtime
+    app.state.qdrant_collection = active_collection
+    app.state.embedding_dims = active_dims
     yield
     await close_sqlite_checkpointer(checkpoint_conn)
     if qdrant is not None:
@@ -213,8 +216,36 @@ def create_app(*, lifespan_override: Any | None = None) -> FastAPI:
         return JSONResponse(status_code=500, content={"detail": body})
 
     @app.get("/health")
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
+    async def health(request: Request) -> dict[str, object]:
+        """Liveness: process is up. Includes runtime readiness fields for operators."""
+        graph_ready = getattr(request.app.state, "graph", None) is not None
+        return {
+            "status": "ok",
+            "runtime": getattr(request.app.state, "runtime", "unknown"),
+            "graph_ready": graph_ready,
+            "qdrant_collection": getattr(
+                request.app.state, "qdrant_collection", None
+            ),
+            "embedding_dims": getattr(request.app.state, "embedding_dims", None),
+        }
+
+    @app.get("/ready")
+    async def ready(request: Request) -> JSONResponse:
+        """Readiness: graph is wired. Railway should use this for traffic."""
+        graph_ready = getattr(request.app.state, "graph", None) is not None
+        body = {
+            "status": "ready" if graph_ready else "not_ready",
+            "runtime": getattr(request.app.state, "runtime", "unknown"),
+            "graph_ready": graph_ready,
+            "qdrant_collection": getattr(
+                request.app.state, "qdrant_collection", None
+            ),
+            "embedding_dims": getattr(request.app.state, "embedding_dims", None),
+        }
+        return JSONResponse(
+            status_code=200 if graph_ready else 503,
+            content=body,
+        )
 
     return app
 

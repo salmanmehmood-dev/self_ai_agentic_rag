@@ -1,4 +1,8 @@
-"""E01 cold-start: ingest sample markdown when the vector store is empty."""
+"""E01 cold-start: ingest sample markdown when the vector store is empty.
+
+Caller: api/main.py lifespan + POST /api/v1/ingest/sample.
+Force=true wipes stale llama-3.3 chunks after corpus updates.
+"""
 
 from __future__ import annotations
 
@@ -11,14 +15,21 @@ from agentic_crag.adapters.retrieval.ingest import MarkdownIngestService
 _SAMPLE_DIR = Path(__file__).resolve().parents[4] / "data" / "sample_corpus"
 
 
-async def ensure_sample_corpus(ingest: MarkdownIngestService) -> dict[str, int | str]:
-    """If collection has 0 points, ingest every ``*.md`` under sample_corpus."""
-    count = await ingest.point_count()
-    if count > 0:
-        return {"status": "ready", "points": count, "ingested": 0}
+async def ensure_sample_corpus(
+    ingest: MarkdownIngestService,
+    *,
+    force: bool = False,
+) -> dict[str, int | str | bool]:
+    """If collection has 0 points (or force), ingest every ``*.md`` under sample_corpus."""
+    if force:
+        await ingest.reset_collection()
+    else:
+        count = await ingest.point_count()
+        if count > 0:
+            return {"status": "ready", "points": count, "ingested": 0, "forced": False}
 
     if not _SAMPLE_DIR.is_dir():
-        return {"status": "missing_sample_dir", "points": 0, "ingested": 0}
+        return {"status": "missing_sample_dir", "points": 0, "ingested": 0, "forced": force}
 
     ingested = 0
     for path in sorted(_SAMPLE_DIR.glob("*.md")):
@@ -27,7 +38,12 @@ async def ensure_sample_corpus(ingest: MarkdownIngestService) -> dict[str, int |
 
     final = await ingest.point_count()
     print(
-        f"[agentic-crag] E01 cold start: ingested {ingested} chunks "
-        f"from {_SAMPLE_DIR} (points={final})"
+        f"[agentic-crag] E01 sample corpus: ingested {ingested} chunks "
+        f"from {_SAMPLE_DIR} (points={final}, force={force})"
     )
-    return {"status": "ingested", "points": final, "ingested": ingested}
+    return {
+        "status": "ingested",
+        "points": final,
+        "ingested": ingested,
+        "forced": force,
+    }

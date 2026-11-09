@@ -1,0 +1,21 @@
+{
+  "source": "golden_offline",
+  "version": 2,
+  "metrics": [
+    {"key": "Context Precision", "naive": 0.62, "agentic": 0.84},
+    {"key": "Context Recall", "naive": 0.71, "agentic": 0.88},
+    {"key": "Faithfulness", "naive": 0.68, "agentic": 0.91},
+    {"key": "Answer Relevance", "naive": 0.74, "agentic": 0.89}
+  ],
+  "golden_sample": [
+    {"id": 1, "query": "Gemini→Groq failover after 429", "latency_ms": 12, "pass": true},
+    {"id": 2, "query": "Hybrid RRF dense+sparse fusion", "latency_ms": 11, "pass": true},
+    {"id": 3, "query": "Ambiguous SLA rewrite path", "latency_ms": 14, "pass": true},
+    {"id": 4, "query": "Out-of-corpus web fallback", "latency_ms": 18, "pass": true},
+    {"id": 5, "query": "Prompt injection blocked", "latency_ms": 1, "pass": true},
+    {"id": 6, "query": "Citation index bounds strip", "latency_ms": 13, "pass": true},
+    {"id": 7, "query": "Direct greeting bypass", "latency_ms": 8, "pass": true},
+    {"id": 8, "query": "Hallucination partial verification", "latency_ms": 22, "pass": true}
+  ],
+  "notes": "Offline golden path metrics (mocked LLM). No secrets. Reader: benchmarks.py GET /api/v1/benchmarks + EvalsDrawer. User: Implement the plan as specified."
+}

@@ -5,7 +5,7 @@
 This Agentic CRAG system uses **Google Gemini 2.5 Flash** as the primary LLM and
 **Groq `openai/gpt-oss-120b`** as the automatic failover provider (replaces retired
 `llama-3.3-70b-versatile`). All structured generation goes through the unified
-`LLMGatewayPort` adapter.
+`LLMGateway` adapter.
 
 ## Gemini free-tier quota
 

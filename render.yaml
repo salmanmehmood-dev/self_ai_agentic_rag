@@ -1,0 +1,43 @@
+# Optional Render Blueprint. Primary path: Dashboard + GitHub (Root Directory = backend).
+# Docs: https://render.com/docs/infrastructure-as-code
+# Secrets use sync:false — set in Render dashboard, never committed.
+
+services:
+  - type: web
+    name: agentic-crag-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready
+    disk:
+      name: checkpoints
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: LOCAL_DEV_MODE
+        value: "false"
+      - key: QDRANT_COLLECTION
+        value: crag_chunks
+      - key: CHECKPOINT_PATH
+        value: /data/checkpoints.sqlite
+      - key: EXPOSE_DEVELOPER_ERRORS
+        value: "false"
+      - key: LLM_TIER
+        value: free
+      - key: FREE_MODELS_ONLY
+        value: "true"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ROUTEWAY_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

@@ -20,6 +20,8 @@ def build_crag_graph(
     llm: LLMClientPort,
     retriever: HybridRetrieverPort,
     web_search: WebSearchPort,
+    *,
+    checkpointer: Any | None = None,
 ) -> Any:
     nodes = build_nodes(llm, retriever, web_search)
     # cast: LangGraph stubs reject our NodeFn alias under strict mypy
@@ -67,4 +69,6 @@ def build_crag_graph(
     )
     graph.add_edge("direct_answer", END)
 
+    if checkpointer is not None:
+        return graph.compile(checkpointer=checkpointer)
     return graph.compile()

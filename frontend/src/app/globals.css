@@ -1,26 +1,128 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4fbf9;
+  --foreground: #0f1f1c;
+  --surface: #ffffff;
+  --muted: #d7e8e4;
+  --muted-foreground: #3d5c56;
+  --border: #9cc5bc;
+  --accent: #0d9488;
+  --accent-hot: #ea580c;
+  --on-accent: #ffffff;
+  --ok: #15803d;
+  --warn: #b45309;
+  --danger: #dc2626;
+  --ring: #0d9488;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-hot: var(--accent-hot);
+  --color-on-accent: var(--on-accent);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@keyframes instrument-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes instrument-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes instrument-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    border-color: var(--accent);
+  }
+  50% {
+    opacity: 0.72;
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  }
+}
+
+@keyframes instrument-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes timeline-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-instrument-fade-up {
+  animation: instrument-fade-up 420ms ease-out both;
+}
+
+.animate-instrument-stagger {
+  animation: instrument-stagger-in 380ms ease-out both;
+}
+
+.animate-instrument-pulse {
+  animation: instrument-pulse 1.4s ease-in-out infinite;
+}
+
+.animate-instrument-caret {
+  animation: instrument-caret 900ms steps(1, end) infinite;
+}
+
+.animate-timeline-step {
+  animation: timeline-step-in 280ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-instrument-fade-up,
+  .animate-instrument-stagger,
+  .animate-instrument-pulse,
+  .animate-instrument-caret,
+  .animate-timeline-step {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

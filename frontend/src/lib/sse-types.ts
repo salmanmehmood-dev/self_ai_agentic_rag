@@ -69,7 +69,7 @@ export type AgentSSEEvent =
         is_grounded: boolean;
         addresses_query: boolean;
         confidence_score: number;
-        provider_used: "gemini-2.5-flash" | "groq-gpt-oss-120b";
+        provider_used: string;
         total_latency_ms: number;
         status?: "verified" | "partial_verification";
       };
@@ -84,7 +84,13 @@ export type AgentSSEEvent =
     }
   | {
       event: "system_warning";
-      data: { code: string; message: string };
+      data: {
+        code: string;
+        user_message?: string;
+        developer_message?: string;
+        message?: string;
+        layer?: "backend";
+      };
     };
 
 export type TimelineStep = {
@@ -107,7 +113,18 @@ export type ChatMessage = {
     total_latency_ms: number;
     status?: "verified" | "partial_verification";
   };
+  /** User-safe notices (raw backend text kept in technical for dev). */
+  notices?: UserNotice[];
+  /** @deprecated prefer notices */
   warnings?: Array<{ code: string; message: string }>;
+};
+
+export type UserNotice = {
+  code: string;
+  title: string;
+  message: string;
+  technical: string;
+  layer?: "frontend" | "backend";
 };
 
 export type RetrievalChunk = {

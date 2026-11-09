@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 from agentic_crag.adapters.llm.free_models import (
     DEFAULT_EMBED_MODEL,
@@ -29,7 +30,9 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "agentic-crag"
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:3000"]
+    )
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None
     qdrant_collection: str = "crag_chunks"
@@ -68,6 +71,8 @@ class Settings(BaseSettings):
     local_dev_mode: bool = True
     ollama_base_url: str = "http://localhost:11434/v1"
     ollama_model: str = "qwen2.5:3b"
+    # Local CPU grading often exceeds the cloud 45s budget.
+    ollama_timeout_s: float = 180.0
     local_embed_model: str = "BAAI/bge-small-en-v1.5"
     local_embedding_dims: int = 384
     qdrant_collection_local: str = "crag_chunks_local"
@@ -85,6 +90,8 @@ class Settings(BaseSettings):
     def _split_cors(cls, value: object) -> object:
         if isinstance(value, str):
             raw = value.strip()
+            if not raw:
+                return ["http://localhost:3000"]
             if raw.startswith("["):
                 return value
             return [part.strip() for part in raw.split(",") if part.strip()]

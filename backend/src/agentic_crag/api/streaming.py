@@ -41,12 +41,14 @@ async def stream_chat_events(
     graph: Any,
     query: str,
     session_id: str | None,
+    thread_id: str | None = None,
     provider_used: str = "gemini-2.5-flash",
     failover_events: list[ProviderFailoverData] | None = None,
     is_disconnected: DisconnectCheck | None = None,
 ) -> AsyncIterator[str]:
     started = time.perf_counter()
     sid = session_id or str(uuid.uuid4())
+    tid = thread_id or sid
     initial = {
         "session_id": sid,
         "original_query": query,
@@ -57,9 +59,12 @@ async def stream_chat_events(
     prev_query = query
     attempt = 0
     failovers = failover_events if failover_events is not None else []
+    run_config = {"configurable": {"thread_id": tid}}
 
     try:
-        async for update in graph.astream(initial, stream_mode="updates"):
+        async for update in graph.astream(
+            initial, config=run_config, stream_mode="updates"
+        ):
             if is_disconnected is not None and await is_disconnected():
                 break
             if not isinstance(update, dict):
@@ -93,8 +98,12 @@ async def stream_chat_events(
                             "system_warning",
                             SystemWarningData(
                                 code="E01_EMPTY_CORPUS",
-                                message=(
-                                    "Vector store returned 0 chunks; "
+                                user_message=(
+                                    "No documents matched yet. The agent may rewrite "
+                                    "your query or search the web."
+                                ),
+                                developer_message=(
+                                    "hybrid_retrieve returned 0 chunks on attempt 1; "
                                     "rewrite/web fallback may follow."
                                 ),
                             ),
@@ -163,12 +172,16 @@ async def stream_chat_events(
                         )
 
                 if graph_node == "verify_response":
+                    # Skip intermediate "retry synth" so UI amber badge is final only.
+                    traces = partial.get("node_trace") or []
+                    if any(
+                        getattr(ev, "summary", "") == "retry synth" for ev in traces
+                    ):
+                        continue
                     report = partial.get("verification_report")
                     if report is not None:
                         elapsed = int((time.perf_counter() - started) * 1000)
-                        provider = provider_used
-                        if provider not in {"gemini-2.5-flash", "groq-gpt-oss-120b"}:
-                            provider = "gemini-2.5-flash"
+                        provider = provider_used or "gemini-2.5-flash"
                         status = getattr(report, "status", None) or (
                             "verified" if report.is_grounded else "partial_verification"
                         )
@@ -178,7 +191,7 @@ async def stream_chat_events(
                                 is_grounded=bool(report.is_grounded),
                                 addresses_query=bool(report.addresses_query),
                                 confidence_score=float(report.confidence_score),
-                                provider_used=provider,  # type: ignore[arg-type]
+                                provider_used=provider,
                                 total_latency_ms=elapsed,
                                 status=status,  # type: ignore[arg-type]
                             ),
@@ -186,5 +199,11 @@ async def stream_chat_events(
     except Exception as exc:  # noqa: BLE001 — surface to UI instead of ASGI 500
         yield format_sse(
             "system_warning",
-            SystemWarningData(code="ERR_GRAPH_STREAM", message=str(exc)[:400]),
+            SystemWarningData(
+                code="ERR_GRAPH_STREAM",
+                user_message=(
+                    "Couldn't finish that answer. Try again or rephrase your question."
+                ),
+                developer_message=f"{type(exc).__name__}: {exc}"[:800],
+            ),
         )

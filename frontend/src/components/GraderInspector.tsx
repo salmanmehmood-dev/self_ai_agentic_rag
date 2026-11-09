@@ -16,20 +16,20 @@ type Row = {
 function badge(evaln: GradeEvaluation | undefined) {
   if (!evaln) {
     return (
-      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
+      <span className="border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
         PENDING
       </span>
     );
   }
   if (evaln.relevant) {
     return (
-      <span className="rounded bg-emerald-950 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+      <span className="border border-ok/40 bg-ok/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-ok">
         KEEP · {evaln.confidence.toFixed(2)}
       </span>
     );
   }
   return (
-    <span className="rounded bg-rose-950 px-1.5 py-0.5 text-[10px] font-medium text-rose-300">
+    <span className="border border-danger/40 bg-danger/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-danger">
       FILTERED · {evaln.confidence.toFixed(2)}
     </span>
   );
@@ -59,29 +59,29 @@ function ChunkCard({
       ref={ref}
       id={`inspector-chunk-${citeIndex}`}
       data-chunk-id={row.chunk.chunk_id}
-      className={`border p-3 transition-all ${
+      className={`border p-3 transition-colors duration-200 ${
         focused
-          ? "border-emerald-500 bg-emerald-950/30 ring-1 ring-emerald-500/60"
-          : "border-slate-800"
-      } ${filtered && !open && !focused ? "opacity-45" : "opacity-100"} ${
-        !focused && filtered ? "bg-slate-950/40" : ""
-      } ${!focused && !filtered ? "bg-slate-900/50" : ""}`}
+          ? "border-accent bg-accent/10"
+          : "border-border bg-surface"
+      } ${filtered && !open && !focused ? "opacity-45" : "opacity-100"}`}
     >
       <button
         type="button"
-        className="flex w-full items-start justify-between gap-2 text-left"
+        className="flex w-full cursor-pointer items-start justify-between gap-2 text-left"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
         <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-slate-100">
-            <span className="mr-1 text-slate-500">[{citeIndex}]</span>
+          <p className="truncate text-xs font-medium text-foreground">
+            <span className="mr-1 font-mono text-muted-foreground">
+              [{citeIndex}]
+            </span>
             {row.chunk.source_file}
             {row.chunk.section_header
               ? ` · ${row.chunk.section_header}`
               : ""}
           </p>
-          <p className="mt-0.5 text-[10px] tabular-nums text-slate-500">
+          <p className="mt-0.5 font-mono text-[10px] tabular-nums text-muted-foreground">
             RRF {row.chunk.rrf_score.toFixed(3)} · d#{row.chunk.dense_rank} ·
             s#{row.chunk.sparse_rank}
           </p>
@@ -91,14 +91,14 @@ function ChunkCard({
       {open ? (
         <div className="mt-2 space-y-1.5">
           <p
-            className={`text-[11px] leading-relaxed text-slate-300 ${
-              focused ? "bg-emerald-900/30 px-1 py-0.5" : ""
+            className={`text-[11px] leading-relaxed text-muted-foreground ${
+              focused ? "bg-accent/10 px-1 py-0.5 text-foreground" : ""
             }`}
           >
             {row.chunk.preview_text}
           </p>
           {row.evaluation?.reasoning ? (
-            <p className="text-[11px] italic text-slate-400">
+            <p className="text-[11px] italic text-muted-foreground">
               {row.evaluation.reasoning}
             </p>
           ) : null}
@@ -131,20 +131,22 @@ export function GraderInspector({
   return (
     <section className="flex min-h-0 flex-1 flex-col">
       <header className="mb-2 flex items-baseline justify-between gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Context &amp; grader
+        <h2 className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          Chunk grader
         </h2>
         {live.evaluations.length > 0 ? (
-          <p className="text-[10px] tabular-nums text-slate-500">
+          <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
             {kept} kept · {filtered} filtered
           </p>
         ) : live.chunks.length > 0 ? (
-          <p className="text-[10px] text-slate-500">awaiting grade…</p>
+          <p className="font-mono text-[10px] text-muted-foreground">
+            awaiting grade…
+          </p>
         ) : null}
       </header>
 
       {rows.length === 0 ? (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted-foreground">
           Retrieved chunks appear here when hybrid search finishes.
         </p>
       ) : (

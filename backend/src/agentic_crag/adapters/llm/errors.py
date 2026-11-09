@@ -11,6 +11,9 @@ def raise_mapped_provider_error(exc: BaseException, *, provider: str) -> None:
     message = f"{provider} error: {exc}"
     if status == 429:
         raise ProviderQuotaError(message) from exc
+    if status == 402:
+        # Routeway / OpenAI-compatible: insufficient credits
+        raise ProviderQuotaError(message) from exc
     if status == 503:
         raise ProviderUnavailableError(message) from exc
     raise exc
@@ -26,6 +29,8 @@ def _extract_status(exc: BaseException) -> int | None:
     text = str(exc).upper()
     if "429" in text or "RESOURCE_EXHAUSTED" in text:
         return 429
+    if "402" in text or "INSUFFICIENT FUNDS" in text or "INSUFFICIENT_QUOTA" in text:
+        return 402
     if "503" in text or "UNAVAILABLE" in text:
         return 503
     return None

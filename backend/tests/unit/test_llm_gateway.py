@@ -1,4 +1,4 @@
-"""Mocked tests for FailoverLLMGateway (no live LLM calls)."""
+"""Mocked tests for LLMGateway (no live LLM calls)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import pytest
 from pydantic import BaseModel
 
 from agentic_crag.adapters.llm.errors import raise_mapped_provider_error
-from agentic_crag.adapters.llm.gateway import FailoverLLMGateway
+from agentic_crag.adapters.llm.gateway import LLMGateway
 from agentic_crag.domain.events import ProviderFailoverData
 from agentic_crag.domain.exceptions import ProviderQuotaError, ProviderUnavailableError
 
@@ -45,7 +45,7 @@ def test_raise_mapped_provider_error_503() -> None:
 async def test_gateway_uses_primary_on_success() -> None:
     primary = _FakeClient(result=_RouteOut(route="rag"))
     fallback = _FakeClient(result=_RouteOut(route="direct"))
-    gateway = FailoverLLMGateway(primary, fallback, disable_retry_wait=True)
+    gateway = LLMGateway(primary, fallback, disable_retry_wait=True)
 
     out = await gateway.generate_structured("sys", "user", _RouteOut)
 
@@ -63,7 +63,7 @@ async def test_gateway_retries_then_failovers_on_429() -> None:
     async def on_failover(data: ProviderFailoverData) -> None:
         events.append(data)
 
-    gateway = FailoverLLMGateway(
+    gateway = LLMGateway(
         primary,
         fallback,
         on_failover=on_failover,
@@ -78,3 +78,31 @@ async def test_gateway_retries_then_failovers_on_429() -> None:
     assert len(events) == 1
     assert events[0].from_provider == "gemini-2.5-flash"
     assert events[0].to_provider == "groq-gpt-oss-120b"
+
+
+@pytest.mark.asyncio
+async def test_gateway_failovers_to_tertiary_routeway() -> None:
+    primary = _FakeClient(side_effect=ProviderQuotaError("429 primary"))
+    fallback = _FakeClient(side_effect=ProviderQuotaError("429 fallback"))
+    tertiary = _FakeClient(result=_RouteOut(route="routeway"))
+    events: list[ProviderFailoverData] = []
+
+    async def on_failover(data: ProviderFailoverData) -> None:
+        events.append(data)
+
+    gateway = LLMGateway(
+        primary,
+        fallback,
+        tertiary=tertiary,
+        tertiary_name="routeway-gpt-4o-mini",
+        on_failover=on_failover,
+        disable_retry_wait=True,
+    )
+
+    out = await gateway.generate_structured("sys", "user", _RouteOut)
+
+    assert out.route == "routeway"
+    tertiary.generate_structured.assert_awaited_once()
+    assert len(events) == 2
+    assert events[1].from_provider == "groq-gpt-oss-120b"
+    assert events[1].to_provider == "routeway-gpt-4o-mini"

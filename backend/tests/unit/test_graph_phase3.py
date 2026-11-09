@@ -76,6 +76,21 @@ def test_route_helpers() -> None:
         )
         == "synthesize_response"
     )
+    # Module under test: edges.route_after_verify. Live chat: addresses_query=False
+    # was ending as amber without retry. User pasted partial_verification traces.
+    assert (
+        route_after_verify(
+            {
+                "verification_report": type(
+                    "R",
+                    (),
+                    {"is_grounded": True, "addresses_query": False},
+                )(),
+                "hallucination_retry_count": 0,
+            }
+        )
+        == "synthesize_response"
+    )
 
 
 @pytest.mark.asyncio

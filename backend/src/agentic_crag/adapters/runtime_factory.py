@@ -11,7 +11,6 @@ from agentic_crag.adapters.llm.ollama_client import OllamaClient
 from agentic_crag.adapters.llm.rate_limit import AsyncRateLimiter
 from agentic_crag.adapters.llm.routeway_client import RoutewayClient
 from agentic_crag.adapters.retrieval.embedder import GeminiEmbedder
-from agentic_crag.adapters.retrieval.fastembed_embedder import FastEmbedEmbedder
 from agentic_crag.config import Settings
 from agentic_crag.domain.ports import EmbedderPort, LLMClientPort
 
@@ -27,7 +26,7 @@ def build_llm(
         return OllamaClient(
             base_url=settings.ollama_base_url,
             model=settings.ollama_model,
-            timeout_s=settings.llm_request_timeout_s,
+            timeout_s=settings.ollama_timeout_s,
         )
 
     has_fallback = bool(settings.groq_api_key or settings.routeway_api_key)
@@ -101,6 +100,11 @@ def build_llm(
 
 def build_embedder(settings: Settings) -> EmbedderPort:
     if settings.local_dev_mode:
+        # Lazy import: cloud boots must not load fastembed/ONNX.
+        from agentic_crag.adapters.retrieval.fastembed_embedder import (
+            FastEmbedEmbedder,
+        )
+
         return FastEmbedEmbedder(
             model_name=settings.local_embed_model,
             dims=settings.local_embedding_dims,

@@ -36,29 +36,29 @@ type AgentNodeData = {
 function AgentNodeView({ data }: NodeProps<Node<AgentNodeData>>) {
   const ring = data.active
     ? data.accent === "web"
-      ? "ring-2 ring-cyan-400 shadow-[0_0_16px_rgba(34,211,238,0.45)]"
+      ? "animate-instrument-pulse border-2 border-sky-600 bg-sky-50 text-sky-950"
       : data.accent === "rewrite"
-        ? "ring-2 ring-amber-400 shadow-[0_0_16px_rgba(251,191,36,0.4)]"
-        : "ring-2 ring-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.45)]"
+        ? "animate-instrument-pulse border-2 border-warn bg-warn/10 text-foreground"
+        : "animate-instrument-pulse border-2 border-accent bg-accent/10 text-foreground"
     : data.done
-      ? "border-emerald-700/80 bg-emerald-950/40"
-      : "border-slate-700 bg-slate-900/70";
+      ? "border border-ok bg-ok/10 text-foreground"
+      : "border border-border bg-surface text-muted-foreground";
 
   return (
     <div
-      className={`min-w-[108px] rounded-md border px-3 py-2 text-center text-[11px] font-medium text-slate-100 ${ring}`}
+      className={`min-w-[108px] border px-3 py-2 text-center font-mono text-[11px] font-medium ${ring}`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-slate-500" />
+      <Handle type="target" position={Position.Top} className="!bg-accent" />
       <div>{data.label}</div>
       {data.active ? (
-        <div className="mt-0.5 text-[9px] uppercase tracking-wide text-emerald-300">
+        <div className="mt-0.5 text-[9px] uppercase tracking-wide text-accent">
           live
         </div>
       ) : null}
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-slate-500"
+        className="!bg-accent"
       />
     </div>
   );
@@ -120,7 +120,7 @@ function buildEdges(live: GraphLiveState): Edge[] {
       id: "e-grader-rewriter",
       source: "grader",
       target: "rewriter",
-      style: { stroke: live.rewriteActive ? "#fbbf24" : undefined },
+      style: { stroke: live.rewriteActive ? "#b45309" : undefined },
     },
     {
       id: "e-rewriter-retriever",
@@ -130,20 +130,25 @@ function buildEdges(live: GraphLiveState): Edge[] {
       animated: live.rewriteActive,
       label: live.rewriteActive ? "rewrite" : undefined,
       style: {
-        stroke: live.rewriteActive ? "#fbbf24" : "#64748b",
+        stroke: live.rewriteActive ? "#b45309" : "#9cc5bc",
         strokeDasharray: live.rewriteActive ? "6 4" : undefined,
       },
-      labelStyle: { fill: "#fbbf24", fontSize: 10 },
+      labelStyle: { fill: "#b45309", fontSize: 10 },
     },
   ];
 
   return base.map((e) => ({
     ...e,
-    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      width: 14,
+      height: 14,
+      color: "#0d9488",
+    },
     animated:
       e.animated ?? animated(e.source as AgentNode, e.target as AgentNode),
     style: {
-      stroke: "#64748b",
+      stroke: "#9cc5bc",
       strokeWidth: 1.5,
       ...e.style,
     },
@@ -155,7 +160,7 @@ export function AgentFlowCanvas({ live }: { live: GraphLiveState }) {
   const edges = useMemo(() => buildEdges(live), [live]);
 
   return (
-    <div className="h-72 w-full overflow-hidden rounded-md border border-slate-800 bg-slate-950">
+    <div className="h-72 w-full overflow-hidden border border-border bg-surface">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -167,8 +172,9 @@ export function AgentFlowCanvas({ live }: { live: GraphLiveState }) {
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
+        proOptions={{ hideAttribution: true }}
       >
-        <Background gap={18} size={1} color="#1e293b" />
+        <Background gap={18} size={1} color="#d7e8e4" />
       </ReactFlow>
     </div>
   );

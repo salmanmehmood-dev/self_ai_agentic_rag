@@ -9,7 +9,14 @@ import type {
   ChatMessage,
   GraphLiveState,
   TimelineStep,
+  UserNotice,
 } from "../lib/sse-types";
+import {
+  isDevErrorDetailEnabled,
+  mapSystemWarning,
+  mapUnknownError,
+  type UserFacingError,
+} from "../lib/user-facing-errors";
 
 function newId(): string {
   return crypto.randomUUID();
@@ -28,7 +35,7 @@ export function useAgentChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [userError, setUserError] = useState<UserFacingError | null>(null);
   const [graphLive, setGraphLive] = useState<GraphLiveState>(EMPTY_GRAPH);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -37,7 +44,7 @@ export function useAgentChat() {
       const query = (raw ?? input).trim();
       if (!query || streaming) return;
 
-      setError(null);
+      setUserError(null);
       setInput("");
       setStreaming(true);
       setGraphLive(EMPTY_GRAPH);
@@ -139,19 +146,41 @@ export function useAgentChat() {
             } else if (ev.event === "query_rewritten") {
               setGraphLive((g) => ({ ...g, rewriteActive: true }));
             } else if (ev.event === "system_warning") {
+              const mapped = mapSystemWarning(ev.data);
+              const notice: UserNotice = {
+                code: mapped.code,
+                title: mapped.title,
+                message: mapped.message,
+                technical: mapped.technical,
+                layer: mapped.layer,
+              };
               patchAssistant((m) => ({
                 ...m,
-                warnings: [...(m.warnings ?? []), { ...ev.data }],
+                notices: [...(m.notices ?? []), notice],
               }));
+              if (ev.data.code === "ERR_GRAPH_STREAM") {
+                setUserError(mapped);
+                if (!isDevErrorDetailEnabled()) {
+                  patchAssistant((m) =>
+                    m.content.trim()
+                      ? m
+                      : {
+                          ...m,
+                          content:
+                            "I couldn't complete a verified answer for that question. Please try again.",
+                        },
+                  );
+                }
+              }
             }
           },
           onError(err) {
-            setError(err.message);
+            setUserError(err);
           },
         });
       } catch (err) {
         if (!(err instanceof DOMException && err.name === "AbortError")) {
-          setError(err instanceof Error ? err.message : String(err));
+          setUserError((prev) => prev ?? mapUnknownError(err));
         }
       } finally {
         setStreaming(false);
@@ -166,6 +195,8 @@ export function useAgentChat() {
     abortRef.current?.abort();
   }, []);
 
+  const clearError = useCallback(() => setUserError(null), []);
+
   return {
     messages,
     input,
@@ -173,7 +204,9 @@ export function useAgentChat() {
     send,
     stop,
     streaming,
-    error,
+    userError,
+    clearError,
+    showDevErrors: isDevErrorDetailEnabled(),
     graphLive,
   };
 }

@@ -11,33 +11,39 @@ import { ThoughtTimeline } from "./ThoughtTimeline";
 
 const PRESETS = [
   {
-    tone: "emerald" as const,
-    label: "Scenario 1: Direct high-confidence match",
+    n: "01",
+    title: "Failover path",
+    blurb: "High-confidence corpus hit",
     query: "How does Gemini to Groq failover work after a 429?",
   },
   {
-    tone: "amber" as const,
-    label: "Scenario 2: Ambiguous → rewrite loop",
-    query: "What about the SLA xyz failover thing?",
+    n: "02",
+    title: "Rewrite loop",
+    blurb: "Ambiguous → query rewrite",
+    query: "What about the SLA xyzq9 obfuscated doodad failover thing?",
   },
   {
-    tone: "cyan" as const,
-    label: "Scenario 3: Out-of-corpus → web fallback",
-    query: "Latest news on Qdrant hybrid RRF fusion outside our docs",
+    n: "03",
+    title: "Web fallback",
+    blurb: "Out-of-corpus → live search",
+    query:
+      "Who won the most recent FIFA Women's World Cup and what was the final score?",
   },
 ];
 
-const TONE_CLASS = {
-  emerald:
-    "border-emerald-700/50 bg-emerald-50 text-emerald-950 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/70",
-  amber:
-    "border-amber-700/50 bg-amber-50 text-amber-950 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-950/70",
-  cyan: "border-cyan-700/50 bg-cyan-50 text-cyan-950 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-200 dark:hover:bg-cyan-950/70",
-};
-
 export function ChatWorkbench() {
-  const { messages, input, setInput, send, stop, streaming, error, graphLive } =
-    useAgentChat();
+  const {
+    messages,
+    input,
+    setInput,
+    send,
+    stop,
+    streaming,
+    userError,
+    clearError,
+    showDevErrors,
+    graphLive,
+  } = useAgentChat();
   const [focusCiteIndex, setFocusCiteIndex] = useState<number | null>(null);
   const [evalsOpen, setEvalsOpen] = useState(false);
 
@@ -45,54 +51,87 @@ export function ChatWorkbench() {
     setFocusCiteIndex(index);
   }, []);
 
+  const statusLabel = streaming
+    ? "Streaming"
+    : graphLive.activeNode
+      ? "Live"
+      : "Idle";
+  const statusClass = streaming
+    ? "border-accent-hot bg-accent-hot/10 text-accent-hot"
+    : graphLive.activeNode
+      ? "border-accent bg-accent/10 text-accent"
+      : "border-border bg-muted text-muted-foreground";
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 lg:flex-row lg:gap-6">
+    <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 lg:flex-row lg:gap-8">
       <div className="flex min-h-0 flex-1 flex-col lg:max-w-[52%]">
-        <header className="mb-6 flex items-start justify-between gap-3">
+        <header className="animate-instrument-fade-up mb-6 flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm tracking-wide text-zinc-500">Agentic CRAG</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Workbench
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
+              Instrument panel
+            </p>
+            <h1 className="mt-1 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+              Agentic CRAG
             </h1>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-              Live agent timeline + streamed answer over typed SSE.
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">
+              Corrective RAG you can watch: timeline, grader, failover, citations.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setEvalsOpen(true)}
-            className="shrink-0 border border-zinc-300 px-3 py-1.5 text-xs text-zinc-800 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
-          >
-            View evals &amp; benchmarks
-          </button>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <span
+              className={`inline-flex items-center border px-2 py-1 font-mono text-[10px] uppercase tracking-wider ${statusClass}`}
+              aria-live="polite"
+            >
+              {statusLabel}
+            </span>
+            <button
+              type="button"
+              onClick={() => setEvalsOpen(true)}
+              className="cursor-pointer border border-border bg-surface px-3 py-1.5 text-xs text-foreground transition-colors duration-200 hover:border-accent hover:text-accent"
+            >
+              View evals
+            </button>
+          </div>
         </header>
 
-        <div className="mb-4 flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
+        <div className="mb-5 grid gap-2 sm:grid-cols-3">
+          {PRESETS.map((p, i) => (
             <button
-              key={p.label}
+              key={p.n}
               type="button"
               disabled={streaming}
               onClick={() => {
                 setFocusCiteIndex(null);
                 void send(p.query);
               }}
-              className={`border px-3 py-1.5 text-left text-xs disabled:opacity-50 ${TONE_CLASS[p.tone]}`}
+              style={{ animationDelay: `${80 + i * 70}ms` }}
+              className="animate-instrument-stagger cursor-pointer border border-border bg-surface p-3 text-left transition-colors duration-200 hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {p.label}
+              <span className="font-mono text-[10px] text-accent">{p.n}</span>
+              <span className="mt-1 block text-sm font-medium text-foreground">
+                {p.title}
+              </span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                {p.blurb}
+              </span>
             </button>
           ))}
         </div>
 
-        <div className="flex-1 space-y-6 overflow-y-auto">
+        <div className="flex-1 space-y-4 overflow-y-auto">
           {messages.length === 0 ? (
-            <p className="text-sm text-zinc-500">
-              Ask a question or pick a scenario above. Backend must be on{" "}
-              <code className="text-zinc-700 dark:text-zinc-300">
-                NEXT_PUBLIC_API_URL
-              </code>{" "}
-              (default http://localhost:8000).
-            </p>
+            <div className="border border-dashed border-border bg-surface/80 p-5">
+              <p className="text-sm font-medium text-foreground">
+                Run a scenario to start the demo
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                You will see the agent timeline, live graph, chunk grades, and
+                cited answer stream in one pass.
+              </p>
+              <p className="mt-3 font-mono text-[10px] text-muted-foreground">
+                API · NEXT_PUBLIC_API_URL · default http://localhost:8000
+              </p>
+            </div>
           ) : null}
 
           {messages.map((m) => (
@@ -100,12 +139,12 @@ export function ChatWorkbench() {
               key={m.id}
               className={
                 m.role === "user"
-                  ? "ml-4 border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
-                  : "mr-4 border border-zinc-200 p-4 dark:border-zinc-800"
+                  ? "ml-3 border-2 border-border bg-muted/40 p-4"
+                  : "mr-3 border border-border bg-surface p-4"
               }
             >
-              <p className="mb-2 text-[11px] uppercase tracking-wider text-zinc-500">
-                {m.role}
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                {m.role === "user" ? "query" : "agent"}
               </p>
               {m.role === "assistant" ? (
                 <ThoughtTimeline steps={m.timeline} />
@@ -119,15 +158,29 @@ export function ChatWorkbench() {
                   streaming={streaming}
                 />
               ) : (
-                <div className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-900 dark:text-zinc-100">
+                <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                   {m.content}
                 </div>
               )}
-              {m.warnings?.length ? (
-                <ul className="mt-2 space-y-1 text-xs text-amber-800 dark:text-amber-300">
-                  {m.warnings.map((w, i) => (
-                    <li key={`${w.code}-${i}`}>
-                      Warning [{w.code}]: {w.message}
+              {m.notices?.length ? (
+                <ul className="mt-2 space-y-2" aria-live="polite">
+                  {m.notices.map((n, i) => (
+                    <li
+                      key={`${n.code}-${i}`}
+                      className="border border-warn/50 bg-warn/10 px-3 py-2 text-xs text-foreground"
+                    >
+                      <p className="font-medium text-warn">{n.title}</p>
+                      <p className="mt-0.5 text-muted-foreground">{n.message}</p>
+                      {showDevErrors ? (
+                        <details className="mt-1 font-mono text-[10px] opacity-70">
+                          <summary>
+                            Developer detail ({n.layer ?? "backend"})
+                          </summary>
+                          <code className="break-all">
+                            [{n.code}] {n.technical}
+                          </code>
+                        </details>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -136,35 +189,66 @@ export function ChatWorkbench() {
                 <p
                   className={
                     m.verification.status === "partial_verification"
-                      ? "mt-3 inline-flex items-center gap-2 border border-amber-600/60 bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-950/50 dark:text-amber-200"
-                      : "mt-3 text-xs text-zinc-500"
+                      ? "mt-3 inline-flex items-center gap-2 border border-warn/60 bg-warn/10 px-2 py-1 font-mono text-[11px] text-warn"
+                      : m.verification.is_grounded
+                        ? "mt-3 font-mono text-[11px] text-ok"
+                        : "mt-3 font-mono text-[11px] text-muted-foreground"
                   }
                 >
                   {m.verification.status === "partial_verification"
-                    ? "Caution · partial verification"
+                    ? "Partial verification — some claims unchecked"
                     : m.verification.is_grounded
-                      ? "Verified"
-                      : "Partial"}{" "}
-                  · {m.verification.provider_used} ·{" "}
-                  {m.verification.total_latency_ms}ms · confidence{" "}
-                  {m.verification.confidence_score.toFixed(2)}
+                      ? "Verified against sources"
+                      : "Needs review"}
+                  {showDevErrors ? (
+                    <>
+                      {" "}
+                      · {m.verification.provider_used} ·{" "}
+                      {m.verification.total_latency_ms}ms · confidence{" "}
+                      {m.verification.confidence_score.toFixed(2)}
+                    </>
+                  ) : null}
                 </p>
               ) : null}
             </article>
           ))}
         </div>
 
-        {error ? (
-          <p
-            className="mt-4 text-sm text-red-700 dark:text-red-400"
+        {userError ? (
+          <div
+            className="mt-4 border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-foreground"
             role="alert"
           >
-            {error}
-          </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium text-danger">{userError.title}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {userError.message}
+                </p>
+                {showDevErrors ? (
+                  <details className="mt-1 font-mono text-[10px] opacity-70">
+                    <summary>
+                      Developer detail ({userError.layer ?? "unknown"})
+                    </summary>
+                    <code className="break-all">
+                      [{userError.code}] {userError.technical}
+                    </code>
+                  </details>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={clearError}
+                className="cursor-pointer shrink-0 text-xs underline opacity-80 hover:opacity-100"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
         ) : null}
 
         <form
-          className="sticky bottom-0 mt-4 flex gap-2 border-t border-zinc-200 bg-[var(--background)] py-4 dark:border-zinc-800"
+          className="sticky bottom-0 mt-4 flex gap-2 border-t border-border bg-background py-4"
           onSubmit={(e) => {
             e.preventDefault();
             void send();
@@ -180,20 +264,20 @@ export function ChatWorkbench() {
             placeholder="Ask the agentic RAG system…"
             maxLength={2000}
             disabled={streaming}
-            className="min-w-0 flex-1 border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+            className="min-w-0 flex-1 border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors duration-200 focus:border-accent disabled:opacity-60"
           />
           {streaming ? (
             <button
               type="button"
               onClick={stop}
-              className="border border-zinc-400 px-4 py-2 text-sm text-zinc-800 dark:text-zinc-200"
+              className="cursor-pointer border border-accent-hot bg-accent-hot px-4 py-2 text-sm font-medium text-white transition-opacity duration-200 hover:opacity-90"
             >
               Stop
             </button>
           ) : (
             <button
               type="submit"
-              className="bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
+              className="cursor-pointer bg-accent px-4 py-2 text-sm font-medium text-on-accent transition-opacity duration-200 hover:opacity-90"
             >
               Send
             </button>
@@ -201,10 +285,10 @@ export function ChatWorkbench() {
         </form>
       </div>
 
-      <aside className="mt-8 flex w-full flex-col gap-4 border-t border-zinc-200 pt-6 dark:border-zinc-800 lg:mt-0 lg:w-[48%] lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+      <aside className="mt-8 flex w-full flex-col gap-5 border-t border-border pt-6 lg:mt-0 lg:w-[48%] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
         <div>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Live execution graph
+          <h2 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Live execution
           </h2>
           <AgentFlowCanvas live={graphLive} />
         </div>

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class NodeTransitionData(BaseModel):
@@ -56,7 +58,7 @@ class VerificationCompleteData(BaseModel):
     is_grounded: bool
     addresses_query: bool
     confidence_score: float
-    provider_used: Literal["gemini-2.5-flash", "groq-gpt-oss-120b"]
+    provider_used: str
     total_latency_ms: int
     status: Literal["verified", "partial_verification"] = "verified"
 
@@ -69,7 +71,17 @@ class ProviderFailoverData(BaseModel):
 
 class SystemWarningData(BaseModel):
     code: str
-    message: str
+    user_message: str
+    developer_message: str
+    # Alias of user_message for older clients / FE fallbacks
+    message: str = ""
+    layer: Literal["backend"] = "backend"
+
+    @model_validator(mode="after")
+    def _sync_message(self) -> SystemWarningData:
+        if not self.message:
+            self.message = self.user_message
+        return self
 
 
 class NodeTransitionEvent(BaseModel):

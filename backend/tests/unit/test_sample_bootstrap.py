@@ -24,6 +24,29 @@ async def test_ensure_sample_skips_when_points_exist() -> None:
 
 
 @pytest.mark.asyncio
+async def test_ensure_sample_force_resets_even_when_points_exist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    doc = tmp_path / "sla.md"
+    doc.write_text("# SLA\n\nGroq openai/gpt-oss-120b failover.\n" * 3, encoding="utf-8")
+    monkeypatch.setattr(
+        "agentic_crag.adapters.retrieval.sample_bootstrap._SAMPLE_DIR",
+        tmp_path,
+    )
+    ingest = MagicMock()
+    ingest.reset_collection = AsyncMock()
+    ingest.point_count = AsyncMock(return_value=3)
+    ingest.ingest_markdown = AsyncMock(return_value=3)
+
+    result = await ensure_sample_corpus(ingest, force=True)
+
+    assert result["status"] == "ingested"
+    assert result["forced"] is True
+    ingest.reset_collection.assert_awaited_once()
+    ingest.ingest_markdown.assert_awaited()
+
+
+@pytest.mark.asyncio
 async def test_ensure_sample_ingests_markdown_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

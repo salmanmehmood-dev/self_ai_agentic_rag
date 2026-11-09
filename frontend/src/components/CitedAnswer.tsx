@@ -52,7 +52,7 @@ function CitationBadge({
       <button
         type="button"
         onClick={() => onCite(meta.index)}
-        className="mx-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded bg-emerald-100 px-1 align-super text-[10px] font-semibold text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:bg-emerald-900"
+        className="mx-0.5 inline-flex h-5 min-w-5 cursor-pointer items-center justify-center border border-accent bg-accent/15 px-1 align-super font-mono text-[10px] font-semibold text-accent transition-colors duration-150 hover:bg-accent hover:text-on-accent"
         aria-label={`Citation ${meta.index}: ${source}`}
       >
         {meta.index}
@@ -60,15 +60,15 @@ function CitationBadge({
       {hover ? (
         <span
           role="tooltip"
-          className="absolute bottom-full left-1/2 z-20 mb-1 w-48 -translate-x-1/2 border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-[10px] leading-snug text-zinc-200 shadow-lg"
+          className="absolute bottom-full left-1/2 z-20 mb-1 w-48 -translate-x-1/2 border border-border bg-foreground px-2 py-1.5 font-mono text-[10px] leading-snug text-background"
         >
           <span className="block truncate font-medium">{source}</span>
           {confidence != null ? (
-            <span className="mt-0.5 block tabular-nums text-zinc-400">
+            <span className="mt-0.5 block tabular-nums opacity-80">
               confidence {confidence.toFixed(2)}
             </span>
           ) : (
-            <span className="mt-0.5 block text-zinc-500">open in inspector</span>
+            <span className="mt-0.5 block opacity-70">open in inspector</span>
           )}
         </span>
       ) : null}
@@ -96,11 +96,16 @@ export function CitedAnswer({
   );
 
   if (!content) {
-    return streaming ? <>…</> : null;
+    return streaming ? (
+      <span
+        className="animate-instrument-caret inline-block h-4 w-1.5 bg-accent-hot align-middle"
+        aria-hidden
+      />
+    ) : null;
   }
 
   return (
-    <div className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-900 dark:text-zinc-100">
+    <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
       {parts.map((part, i) => {
         if (part.kind === "text") {
           return <span key={i}>{part.value}</span>;
@@ -118,6 +123,12 @@ export function CitedAnswer({
           />
         );
       })}
+      {streaming ? (
+        <span
+          className="animate-instrument-caret ml-0.5 inline-block h-3.5 w-1 bg-accent-hot align-text-bottom"
+          aria-hidden
+        />
+      ) : null}
     </div>
   );
 }

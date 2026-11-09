@@ -108,4 +108,7 @@ def test_chat_rejects_oversized_query(client: TestClient) -> None:
 
 
 def test_health_still_ok(client: TestClient) -> None:
-    assert client.get("/health").json() == {"status": "ok"}
+    body = client.get("/health").json()
+    assert body["status"] == "ok"
+    assert "graph_ready" in body
+    assert "runtime" in body

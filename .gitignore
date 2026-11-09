@@ -1,4 +1,10 @@
+# Secrets / local env
 .env
+.env.local
+.env.*.local
+frontend/.env.local
+
+# Python
 .venv/
 __pycache__/
 *.py[cod]
@@ -7,9 +13,28 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+*.egg-info/
+
+# Node / Next
 node_modules/
 .next/
 out/
 dist/
-*.egg-info/
+
+# Runtime data
+*.sqlite
+*.sqlite-journal
+backend/data/checkpoints.sqlite
+backend/data/*.sqlite
+
+# Agent / IDE tooling (do not ship)
+.cursor/
+.clinerules/
+.opencode/
+.windsurf/
+.superpowers/
+AGENTS.md
+.ai/
+
+# OS
 .DS_Store

@@ -16,17 +16,23 @@ export function ThoughtTimeline({ steps }: { steps: TimelineStep[] }) {
   if (steps.length === 0) return null;
 
   return (
-    <ol className="mb-3 space-y-1.5 border-l border-zinc-300 pl-3 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+    <ol className="mb-3 space-y-1.5 border-l-2 border-border pl-3 font-mono text-[11px] text-muted-foreground">
       {steps.map((step, idx) => (
-        <li key={`${step.node}-${idx}`} className="relative">
-          <span className="absolute -left-[0.91rem] top-1.5 h-1.5 w-1.5 rounded-full bg-emerald-600" />
-          <span className="font-medium text-zinc-800 dark:text-zinc-200">
+        <li
+          key={`${step.node}-${idx}`}
+          className="animate-timeline-step relative"
+          style={{ animationDelay: `${idx * 40}ms` }}
+        >
+          <span className="absolute -left-[0.97rem] top-1.5 h-1.5 w-1.5 bg-accent" />
+          <span className="font-medium text-foreground">
             {LABELS[step.node] ?? step.node}
           </span>
           {step.latency_ms != null ? (
-            <span className="ml-1 tabular-nums">: {step.latency_ms}ms</span>
+            <span className="ml-1 tabular-nums text-accent">
+              : {step.latency_ms}ms
+            </span>
           ) : null}
-          <span className="ml-1 text-zinc-500">— {step.summary}</span>
+          <span className="ml-1">— {step.summary}</span>
         </li>
       ))}
     </ol>

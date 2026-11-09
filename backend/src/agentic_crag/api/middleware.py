@@ -5,7 +5,6 @@ from __future__ import annotations
 import time
 import uuid
 from collections.abc import Awaitable, Callable
-from typing import cast
 
 import structlog
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -31,7 +30,7 @@ def configure_structlog() -> None:
 
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
-    async def dispatch(  # type: ignore[override]
+    async def dispatch(
         self,
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
@@ -43,8 +42,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
         started = time.perf_counter()
-        raw = await call_next(request)
-        response = cast(Response, raw)
+        response = await call_next(request)
         duration_ms = int((time.perf_counter() - started) * 1000)
         response.headers["X-Correlation-ID"] = correlation_id
         logger.info(

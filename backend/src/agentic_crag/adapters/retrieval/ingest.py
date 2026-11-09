@@ -19,3 +19,7 @@ class MarkdownIngestService:
 
     async def collection_exists(self) -> bool:
         return await self._store.collection_exists()
+
+    async def reset_collection(self) -> None:
+        # Caller: sample_bootstrap.ensure_sample_corpus(force=True). User chat fix.
+        await self._store.reset_collection()

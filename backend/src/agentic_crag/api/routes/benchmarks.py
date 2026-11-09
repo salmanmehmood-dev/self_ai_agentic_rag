@@ -1,33 +1,38 @@
-"""GET /api/v1/benchmarks — precomputed Ragas shell (Phase 9+ live fill)."""
+"""GET /api/v1/benchmarks — serve committed golden/Ragas metrics snapshot.
+
+Caller: FastAPI via main.py include_router; frontend EvalsDrawer fetches this.
+User: Implement the plan as specified (1.5 benchmarks wire-up).
+"""
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/v1/benchmarks", tags=["benchmarks"])
 
-# Shell metrics — same shape as frontend EvalsDrawer until live Ragas lands.
-_SHELL: dict[str, Any] = {
-    "metrics": [
-        {"key": "Context Precision", "naive": 0.62, "agentic": 0.84},
-        {"key": "Context Recall", "naive": 0.71, "agentic": 0.88},
-        {"key": "Faithfulness", "naive": 0.68, "agentic": 0.91},
-        {"key": "Answer Relevance", "naive": 0.74, "agentic": 0.89},
-    ],
-    "golden_sample": [
-        {"id": 1, "query": "Gemini→Groq failover after 429", "latency_ms": 1840, "pass": True},
-        {"id": 2, "query": "Hybrid RRF dense+sparse fusion", "latency_ms": 1520, "pass": True},
-        {"id": 3, "query": "Ambiguous SLA rewrite path", "latency_ms": 3210, "pass": True},
-        {"id": 4, "query": "Out-of-corpus web fallback", "latency_ms": 4100, "pass": True},
-        {"id": 5, "query": "Empty collection cold start", "latency_ms": 890, "pass": False},
-        {"id": 6, "query": "Citation index bounds strip", "latency_ms": 2010, "pass": True},
-    ],
-    "source": "shell",
-}
+_CANDIDATES = (
+    Path(__file__).resolve().parents[4] / "evals" / "metrics_snapshot.json",
+    Path(__file__).resolve().parents[2] / "data" / "metrics_snapshot.json",
+)
+
+
+def _load_snapshot() -> dict[str, Any]:
+    for path in _CANDIDATES:
+        if path.is_file():
+            raw: Any = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                return dict(raw)
+    return {
+        "source": "missing_snapshot",
+        "metrics": [],
+        "golden_sample": [],
+    }
 
 
 @router.get("")
 async def get_benchmarks() -> dict[str, Any]:
-    return _SHELL
+    return _load_snapshot()

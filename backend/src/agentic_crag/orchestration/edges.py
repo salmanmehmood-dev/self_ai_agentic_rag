@@ -32,10 +32,16 @@ def route_after_grade(state: GraphState) -> RouteAfterGrade:
 
 
 def route_after_verify(state: GraphState) -> RouteAfterVerify:
+    # Called from graph.py conditional_edges(verify_response). User pasted live
+    # amber partials: retry when addresses_query fails too, not only ungrounded.
     report = state.get("verification_report")
     if report is not None and report.is_grounded and report.addresses_query:
         return "__end__"
     retries = int(state.get("hallucination_retry_count") or 0)
-    if report is not None and not report.is_grounded and retries < MAX_HALLUCINATION_RETRIES:
+    if (
+        report is not None
+        and not (report.is_grounded and report.addresses_query)
+        and retries < MAX_HALLUCINATION_RETRIES
+    ):
         return "synthesize_response"
     return "__end__"
