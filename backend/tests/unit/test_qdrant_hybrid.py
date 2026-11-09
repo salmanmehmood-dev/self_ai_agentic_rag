@@ -13,13 +13,25 @@ from agentic_crag.adapters.retrieval.qdrant_hybrid import QdrantHybridStore
 from agentic_crag.domain.entities import DocumentChunk
 
 
-def _mock_client(*, exists: bool = False, points: list[object] | None = None) -> AsyncMock:
+def _mock_client(
+    *,
+    exists: bool = False,
+    points: list[object] | None = None,
+    embedding_dims: int = 8,
+) -> AsyncMock:
     client = AsyncMock()
     collections = MagicMock()
     collections.collections = [SimpleNamespace(name="crag_chunks")] if exists else []
     client.get_collections.return_value = collections
-    info = MagicMock()
-    info.points_count = 2 if exists else 0
+    if exists:
+        dense = MagicMock()
+        dense.size = embedding_dims
+        params = MagicMock()
+        params.vectors = {"dense": dense}
+        info = MagicMock(config=MagicMock(params=params), points_count=2)
+    else:
+        info = MagicMock()
+        info.points_count = 0
     client.get_collection.return_value = info
     client.create_collection = AsyncMock()
     client.upsert = AsyncMock()
