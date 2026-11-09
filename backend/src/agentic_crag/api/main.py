@@ -92,6 +92,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         try:
             await ensure_sample_corpus(ingest)
         except EmbeddingDimensionMismatchError:
+            await qdrant.close()
             raise
         except Exception as exc:  # noqa: BLE001 — boot must continue
             print(f"[agentic-crag] E01 sample ingest failed (continuing): {exc}")
