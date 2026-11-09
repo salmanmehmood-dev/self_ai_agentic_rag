@@ -23,9 +23,9 @@ from agentic_crag.adapters.checkpoint import (
 from agentic_crag.adapters.llm.rate_limit import AsyncIpRpmLimiter, AsyncRateLimiter
 from agentic_crag.adapters.observability.phoenix_tracing import setup_phoenix_tracing
 from agentic_crag.adapters.retrieval.ingest import MarkdownIngestService
-from agentic_crag.adapters.runtime_factory import build_embedder, build_llm
 from agentic_crag.adapters.retrieval.qdrant_hybrid import QdrantHybridStore
 from agentic_crag.adapters.retrieval.sample_bootstrap import ensure_sample_corpus
+from agentic_crag.adapters.runtime_factory import build_embedder, build_llm
 from agentic_crag.adapters.search.web_search import WebSearchAdapter
 from agentic_crag.api.error_envelope import build_error_body
 from agentic_crag.api.middleware import CorrelationIdMiddleware, configure_structlog
