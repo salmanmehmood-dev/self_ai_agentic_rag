@@ -34,5 +34,29 @@ async def test_ensure_collection_raises_on_dim_mismatch() -> None:
         collection_name="crag_chunks_local",
         embedding_dims=384,
     )
-    with pytest.raises(EmbeddingDimensionMismatchError):
+    with pytest.raises(EmbeddingDimensionMismatchError) as exc_info:
         await store.ensure_collection()
+    assert exc_info.value.code == "ERR_EMBED_DIM_MISMATCH"
+
+
+@pytest.mark.asyncio
+async def test_ensure_collection_raises_when_dense_size_unreadable() -> None:
+    client = MagicMock()
+    coll = MagicMock()
+    coll.name = "crag_chunks_local"
+    client.get_collections = AsyncMock(return_value=MagicMock(collections=[coll]))
+    params = MagicMock()
+    params.vectors = None
+    client.get_collection = AsyncMock(
+        return_value=MagicMock(config=MagicMock(params=params), points_count=1)
+    )
+
+    store = QdrantHybridStore(
+        client,
+        _StubEmbedder(),
+        collection_name="crag_chunks_local",
+        embedding_dims=384,
+    )
+    with pytest.raises(EmbeddingDimensionMismatchError) as exc_info:
+        await store.ensure_collection()
+    assert exc_info.value.code == "ERR_EMBED_DIM_MISMATCH"

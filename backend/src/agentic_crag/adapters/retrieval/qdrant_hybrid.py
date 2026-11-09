@@ -59,7 +59,12 @@ class QdrantHybridStore:
         if await self.collection_exists():
             info = await self._client.get_collection(self._collection)
             actual = self._dense_size_from_info(info)
-            if actual is not None and actual != self._dims:
+            if actual is None:
+                raise EmbeddingDimensionMismatchError(
+                    f"Collection {self._collection!r}: could not resolve dense vector "
+                    f"size from collection config (expected {self._dims})",
+                )
+            if actual != self._dims:
                 raise EmbeddingDimensionMismatchError(
                     f"Collection {self._collection!r}: dense vector size {actual} "
                     f"does not match expected {self._dims}",
