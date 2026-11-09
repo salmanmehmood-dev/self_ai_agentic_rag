@@ -90,6 +90,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
         ingest = MarkdownIngestService(store)
         try:
+            await store.ensure_collection()
             await ensure_sample_corpus(ingest)
         except EmbeddingDimensionMismatchError:
             await qdrant.close()

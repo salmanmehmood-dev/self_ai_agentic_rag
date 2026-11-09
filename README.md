@@ -18,6 +18,7 @@ Corrective + Self-Reflective Agentic RAG (LangGraph) with a Next.js observabilit
 
 ```bash
 cp .env.example .env   # fill GEMINI_API_KEY + GROQ_API_KEY (ROUTEWAY_API_KEY optional)
+# compose sets LOCAL_DEV_MODE=false on api — cloud gateway + Gemini embed (768-d crag_chunks)
 make docker            # or: make docker-d  (detached)
 # UI http://localhost:3000 · API http://localhost:8000/health · Phoenix http://localhost:6006
 # make down | make logs | make health
