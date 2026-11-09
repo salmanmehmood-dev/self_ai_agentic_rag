@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useAgentChat } from "../hooks/useAgentChat";
+import { getApiBase } from "../lib/chat-stream";
 import { AgentFlowCanvas } from "./AgentFlowCanvas";
 import { CitedAnswer } from "./CitedAnswer";
 import { EvalsDrawer } from "./EvalsDrawer";
@@ -50,6 +51,32 @@ export function ChatWorkbench() {
   const onCite = useCallback((index: number) => {
     setFocusCiteIndex(index);
   }, []);
+
+  const resolvedApiBase = getApiBase();
+
+  // #region agent log
+  useEffect(() => {
+    fetch("http://127.0.0.1:7283/ingest/8fc48db5-58f2-4836-8f69-28901c6320b9", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "9c6d38",
+      },
+      body: JSON.stringify({
+        sessionId: "9c6d38",
+        runId: "api-url-check",
+        hypothesisId: "B",
+        location: "ChatWorkbench.tsx:mount",
+        message: "UI resolved API base",
+        data: {
+          resolvedApiBase,
+          host: window.location.host,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  }, [resolvedApiBase]);
+  // #endregion
 
   const statusLabel = streaming
     ? "Streaming"
@@ -128,8 +155,11 @@ export function ChatWorkbench() {
                 You will see the agent timeline, live graph, chunk grades, and
                 cited answer stream in one pass.
               </p>
-              <p className="mt-3 font-mono text-[10px] text-muted-foreground">
-                API · NEXT_PUBLIC_API_URL · default http://localhost:8000
+              <p
+                className="mt-3 font-mono text-[10px] text-muted-foreground"
+                data-debug-api-base={resolvedApiBase}
+              >
+                API base (baked at build): {resolvedApiBase}
               </p>
             </div>
           ) : null}

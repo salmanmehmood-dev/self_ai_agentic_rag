@@ -17,6 +17,11 @@ import {
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
 
+/** Resolved backend origin (build-time NEXT_PUBLIC_API_URL). */
+export function getApiBase(): string {
+  return API_BASE;
+}
+
 export type StreamHandlers = {
   onEvent: (event: AgentSSEEvent) => void;
   onError?: (err: UserFacingError) => void;
@@ -39,6 +44,28 @@ export async function streamChat(
   query: string,
   handlers: StreamHandlers,
 ): Promise<void> {
+  // #region agent log
+  fetch("http://127.0.0.1:7283/ingest/8fc48db5-58f2-4836-8f69-28901c6320b9", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "9c6d38",
+    },
+    body: JSON.stringify({
+      sessionId: "9c6d38",
+      runId: "api-url-check",
+      hypothesisId: "A",
+      location: "chat-stream.ts:streamChat",
+      message: "resolved API_BASE at request",
+      data: {
+        apiBase: API_BASE,
+        envRaw: process.env.NEXT_PUBLIC_API_URL ?? null,
+        usedFallback: !process.env.NEXT_PUBLIC_API_URL,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   await fetchEventSource(`${API_BASE}/api/v1/chat/stream`, {
     method: "POST",
     headers: {
