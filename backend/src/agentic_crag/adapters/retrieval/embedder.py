@@ -9,6 +9,7 @@ from google import genai
 from google.genai import types
 
 from agentic_crag.adapters.llm.errors import raise_mapped_provider_error
+from agentic_crag.adapters.llm.rate_limit import AsyncRateLimiter
 
 
 class HashEmbedder:
@@ -45,9 +46,11 @@ class GeminiEmbedder:
         model: str = "gemini-embedding-001",
         dims: int = 768,
         client: genai.Client | None = None,
+        rate_limiter: AsyncRateLimiter | None = None,
     ) -> None:
         self._model = model
         self._dims = dims
+        self._limiter = rate_limiter
         # Embeddings live on v1beta; keep LLM generate on its own client.
         self._client = client or genai.Client(
             api_key=api_key,
@@ -55,10 +58,13 @@ class GeminiEmbedder:
         )
 
     async def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        if self._limiter is not None:
+            await self._limiter.acquire()
         try:
+            # google-genai stubs reject list[str] for contents; runtime accepts it.
             result = await self._client.aio.models.embed_content(
                 model=self._model,
-                contents=texts,
+                contents=texts,  # type: ignore[arg-type]
                 config=types.EmbedContentConfig(output_dimensionality=self._dims),
             )
         except Exception as exc:  # noqa: BLE001
