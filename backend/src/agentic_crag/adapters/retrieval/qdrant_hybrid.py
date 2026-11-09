@@ -7,6 +7,7 @@ from qdrant_client.http import models as qmodels
 
 from agentic_crag.adapters.retrieval.sparse import text_to_sparse_vector
 from agentic_crag.domain.entities import DocumentChunk
+from agentic_crag.domain.exceptions import EmbeddingDimensionMismatchError
 from agentic_crag.domain.ports import EmbedderPort
 
 _DENSE = "dense"
@@ -37,8 +38,32 @@ class QdrantHybridStore:
         info = await self._client.get_collection(self._collection)
         return int(info.points_count or 0)
 
+    @staticmethod
+    def _dense_size_from_info(info: object) -> int | None:
+        params = getattr(getattr(info, "config", None), "params", None)
+        if params is None:
+            return None
+        vectors = getattr(params, "vectors", None)
+        if vectors is None:
+            return None
+        if isinstance(vectors, dict):
+            dense = vectors.get(_DENSE)
+            if dense is not None and hasattr(dense, "size"):
+                return int(dense.size)
+            return None
+        if hasattr(vectors, "size"):
+            return int(vectors.size)
+        return None
+
     async def ensure_collection(self) -> None:
         if await self.collection_exists():
+            info = await self._client.get_collection(self._collection)
+            actual = self._dense_size_from_info(info)
+            if actual is not None and actual != self._dims:
+                raise EmbeddingDimensionMismatchError(
+                    f"Collection {self._collection!r}: dense vector size {actual} "
+                    f"does not match expected {self._dims}",
+                )
             return
         await self._client.create_collection(
             collection_name=self._collection,
@@ -51,6 +76,13 @@ class QdrantHybridStore:
                 ),
             },
         )
+
+    async def reset_collection(self) -> None:
+        # Caller: MarkdownIngestService.reset_collection → ensure_sample_corpus(force=True).
+        # Fixes stale llama-3.3 answers in user-pasted chat. User: live chat critique.
+        if await self.collection_exists():
+            await self._client.delete_collection(self._collection)
+        await self.ensure_collection()
 
     async def upsert_chunks(self, chunks: list[DocumentChunk]) -> int:
         if not chunks:

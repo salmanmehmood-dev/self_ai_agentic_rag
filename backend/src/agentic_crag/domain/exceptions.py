@@ -29,3 +29,7 @@ class MalformedPdfError(AgenticCragError):
 
 class QueryTooLongError(AgenticCragError):
     code = "E08_QUERY_TOO_LONG"
+
+
+class EmbeddingDimensionMismatchError(AgenticCragError):
+    code = "ERR_EMBED_DIM_MISMATCH"
